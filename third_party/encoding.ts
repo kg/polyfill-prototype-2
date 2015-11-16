@@ -1,14 +1,9 @@
+/// <reference path="types.ts" />
+
 /// portions ganked from JSIL.Bootstrap.Text.js (see JSIL_LICENSE)
 /// utf8 decode/encode partially based on tidy (see TIDY_LICENSE)
 /// fromCharCode / charCodeAt based on MDN reference implementations,
 ///  (MIT license due to predating Aug 20, 2010), (see MDN_LICENSE)
-
-type int32 = number;
-type uint32 = number;
-type float64 = number;
-type byte = number;
-type charCode = number;
-type char = string;
 
 module Encoding {
   export interface IElementReader {

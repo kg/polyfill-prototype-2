@@ -1,0 +1,6 @@
+{
+  "name": "wasm-js-polyfill",
+  "dependencies": {
+    "typescript": "latest"
+  }
+}
