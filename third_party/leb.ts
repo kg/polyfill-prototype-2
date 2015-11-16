@@ -1,77 +1,97 @@
-'use strict';
+/// <reference path="encoding/encoding.ts" />
 
-export function writeUint32 (byteWriter : IByteWriter, value : number) {
-  var v = value;
+type int32 = number;
+type uint32 = number;
+type float64 = number;
+type byte = number;
+type charCode = number;
+type char = string;
 
-  var b = 0;
-  value |= 0;
+module LEB {
+  export function writeUint32 (byteWriter : Encoding.IElementWriter, value : uint32) {
+    var v = value;
 
-  do {
-    b = value & 0x7F;
-    value >>>= 7;
-    if (value)
-      b |= 0x80;
+    var b = 0;
+    value |= 0;
 
-    byteWriter.write(b);
-  } while (value);
-};
+    do {
+      b = value & 0x7F;
+      value >>>= 7;
+      if (value)
+        b |= 0x80;
 
-export function readUint32 (byteReader : IByteReader) : number {
-  var result = 0, shift = 0;
-  while (true) {
-    var b = byteReader.read() | 0;
-    var shifted = (b & 0x7F) << shift;
-    result |= shifted;
-
-    if ((b & 0x80) === 0)
-      break;
-
-    shift += 7;
-  }
-
-  result >>>= 0;
-  return result;
-};
-
-export function writeInt32 (byteWriter : IByteWriter, value : number) {
-  var v = value;
-
-  var b = 0;
-  value |= 0;
-
-  do {
-    b = value & 0x7F;
-    value >>= 7;
-
-    var signBit = (b & 0x40) !== 0;
-
-    if (
-      ((value === 0) && !signBit) ||
-      ((value === -1) && signBit)
-    ) {
       byteWriter.write(b);
-      break;
-    } else {
-      b |= 0x80;
-      byteWriter.write(b);
+    } while (value);
+  };
+
+  export function readUint32 (byteReader : Encoding.IElementReader) : (uint32 | boolean) {
+    var result = 0, shift = 0;
+
+    while (true) {
+      var elt = byteReader.read();
+      if (elt === false)
+        return false;
+
+      var b = <byte>elt;
+      var shifted = (b & 0x7F) << shift;
+      result |= shifted;
+
+      if ((b & 0x80) === 0)
+        break;
+
+      shift += 7;
     }
-  } while (true);
-};
 
-export function readInt32 (byteReader : IByteReader) : number {
-  var result = 0, shift = 0, b = 0;
-  while (true) {
-    b = byteReader.read() | 0;
-    var shifted = (b & 0x7F) << shift;
-    result |= shifted;
-    shift += 7;
-    
-    if ((b & 0x80) === 0)
-      break;
-  }
+    result >>>= 0;
+    return result;
+  };
 
-  if (b & 0x40)
-    result |= (-1 << shift);
+  export function writeInt32 (byteWriter : Encoding.IElementWriter, value : int32) {
+    var v = value;
 
-  return result;
-};
+    var b = 0;
+    value |= 0;
+
+    do {
+      b = value & 0x7F;
+      value >>= 7;
+
+      var signBit = (b & 0x40) !== 0;
+
+      if (
+        ((value === 0) && !signBit) ||
+        ((value === -1) && signBit)
+      ) {
+        byteWriter.write(b);
+        break;
+      } else {
+        b |= 0x80;
+        byteWriter.write(b);
+      }
+    } while (true);
+  };
+
+  export function readInt32 (byteReader : Encoding.IElementReader) : (int32 | boolean) {
+    var result = 0, shift = 0, b = 0;
+
+    while (true) {
+      var elt = byteReader.read();
+      if (elt === false)
+        return false;
+
+      b = <byte>elt;
+
+      var shifted = (b & 0x7F) << shift;
+      result |= shifted;
+      shift += 7;
+      
+      if ((b & 0x80) === 0)
+        break;
+    }
+
+    if (b & 0x40)
+      result |= (-1 << shift);
+
+    return result;
+  };
+}
