@@ -1,3 +1,5 @@
+///<reference path="../decoder.ts"/>
+
 type CallRecord = [string, Array<any>];
 
 class MockHandlerProxyHandler {

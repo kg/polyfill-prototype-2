@@ -69,7 +69,7 @@ test("decodes function section", function (assert) {
     0x04, 0x00,
     0x00, 0x00, 0x00, 0x00, // body
 
-    0x06
+    V8NativeDecoder.Section.End
   ]);
 
   var numSections = V8NativeDecoder.decodeModule(reader, mh);
