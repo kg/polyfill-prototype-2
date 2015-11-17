@@ -3,9 +3,15 @@
 
 type ValueReader = Stream.ValueReader;
 
+type WasmTypeId = int32;
+
 module V8NativeDecoder {
   export interface IDecodeHandler {
-  }
+    onMemory (minSizeLog2 : int32, maxSizeLog2 : int32, externallyVisible : boolean);
+    onSignature (numArguments : int32, resultType : WasmTypeId);
+    onFunction (nameOffset : int32, signatureIndex : int32, functionBodyOffset : int32);
+    onEndOfModule ();
+  };
 
   var SECTION = {
     Memory: 0x00,
@@ -51,6 +57,7 @@ module V8NativeDecoder {
       numSectionsDecoded += 1;
     }
 
+    handler.onEndOfModule();
     return numSectionsDecoded;
   };
 }
