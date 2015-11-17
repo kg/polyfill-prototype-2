@@ -26,6 +26,14 @@ module Stream {
       this.scratchF64    = new Float64Array(this.scratchBytes.buffer);
     }
 
+    get hasOverread () : boolean {
+      return this.byteReader.hasOverread;
+    }
+
+    get eof () : boolean {
+      return this.byteReader.eof;
+    }
+
     peekByte (offset : int32) {
       return this.byteReader.peek(offset);
     }

@@ -11,6 +11,7 @@ module Encoding {
     read () : number | boolean;
     skip (distance : int32);
     getPosition () : int32;
+    hasOverread : boolean;
     eof : boolean;
   }
 
@@ -120,12 +121,15 @@ module Encoding {
       return bytes[position + offset];
     };
 
+    var hasOverread = false;
     var result = {
       peek: peek,
       read: function () {
         var result = peek(0);
         if (result !== false)
           position += 1;
+        else
+          hasOverread = true;
         return result;
       },
       getPosition: function () {
@@ -133,6 +137,9 @@ module Encoding {
       },
       skip: function (distance : int32) {
         position += distance;
+      },
+      get hasOverread () : boolean {
+        return hasOverread;
       },
       get eof () : boolean {
         return (position >= endpoint);
@@ -154,12 +161,15 @@ module Encoding {
       return charCodeAt(str, position + offset);
     };
 
+    var hasOverread = false;
     var result = {
       peek: peek,
       read: function () : (number | boolean) {
         var result = peek(0);
         if (result !== false)
           position += 1;
+        else
+          hasOverread = true;
         return result;
       },
       getPosition: function () {
@@ -167,6 +177,9 @@ module Encoding {
       },
       skip: function (distance : int32) {
         position += distance;
+      },
+      get hasOverread () : boolean {
+        return hasOverread;
       },
       get eof () : boolean {
         return (position >= length);

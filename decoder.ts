@@ -13,7 +13,7 @@ module V8NativeDecoder {
     onEndOfModule ();
   };
 
-  enum Section {
+  export enum Section {
     Memory = 0x00,
     Signatures = 0x01,
     Functions = 0x02,
@@ -23,13 +23,39 @@ module V8NativeDecoder {
     End = 0x06
   };
 
+  function eof () {
+    throw new Error("Unexpected end of file");
+  }
+
   export function decodeFunctionSection (reader: ValueReader, handler: IDecodeHandler) {
   };
 
   export function decodeSignatureSection (reader: ValueReader, handler: IDecodeHandler) {
+    // FIXME: What types are these values? Varuint? Varint?
+    var count = reader.readVarUint32();
+    if (count === false)
+      eof();
+
+    for (var i = 0; i < count; i++) {
+      var numArguments = reader.readVarUint32();
+      var resultType = reader.readByte();
+
+      if (reader.hasOverread)
+        eof();
+
+      handler.onSignature(<int32>numArguments, <int32>resultType);
+    }
   };
 
   export function decodeMemorySection (reader: ValueReader, handler: IDecodeHandler) {
+    var minSize = reader.readByte();
+    var maxSize = reader.readByte();
+    var visibility = reader.readByte();
+
+    if (reader.hasOverread)
+      eof();
+
+    handler.onMemory(<byte>minSize, <byte>maxSize, !!visibility);
   };
 
   export function decodeModule (reader: ValueReader, handler: IDecodeHandler) {
@@ -37,7 +63,9 @@ module V8NativeDecoder {
     var numSectionsDecoded = 0;
 
     while ((sectionTypeToken = reader.readByte()) !== false) {
-      switch (<Section>sectionTypeToken) {
+      var sectionType = <Section>sectionTypeToken;
+
+      switch (sectionType) {
         case Section.Memory:
           decodeMemorySection(reader, handler);
           break;
