@@ -81,3 +81,34 @@ test("decodes signature section", function (assert) {
     ["onSignature", [1, 2]],
   ]);
 });
+
+test("decodes function section", function (assert) {
+  var log = [];
+  var mh = makeMockHandler(log);
+  var reader = makeReader([
+    V8NativeDecoder.Section.Functions,
+    0x02,
+
+    0x00, // flags
+    0x00, 0x00, // signature index
+    0x00, 0x00, 0x00, 0x00, // name offset
+    0x00, 0x00, // body size
+
+    0x01, 
+    0x02, 0x00,
+    0x03, 0x00, 0x00, 0x00,
+    0x04, 0x00,
+    0x00, 0x00, 0x00, 0x00, // body
+
+    0x06
+  ]);
+
+  var numSections = V8NativeDecoder.decodeModule(reader, mh);
+
+  assert.equal(numSections, 2);
+  assert.deepEqual(log, [
+    ["onFunction", [0, 0, 0, 11, 0]],
+    ["onFunction", [1, 2, 3, 20, 4]],
+    ["onEndOfModule", []]
+  ]);
+});

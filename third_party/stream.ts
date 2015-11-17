@@ -8,6 +8,7 @@ module Stream {
     byteReader: Encoding.IElementReader;
 
     scratchBytes: Uint8Array;
+    scratchU16:   Uint16Array;
     scratchU32:   Uint32Array;
     scratchI32:   Int32Array;
     scratchF64:   Float64Array;
@@ -21,9 +22,14 @@ module Stream {
       this.bytes         = bytes;
       this.byteReader    = Encoding.makeByteReader(bytes, index, count);
       this.scratchBytes  = new Uint8Array  (128);
+      this.scratchU16    = new Uint16Array (this.scratchBytes.buffer);
       this.scratchU32    = new Uint32Array (this.scratchBytes.buffer);
       this.scratchI32    = new Int32Array  (this.scratchBytes.buffer);
       this.scratchF64    = new Float64Array(this.scratchBytes.buffer);
+    }
+
+    get position () : int32 {
+      return this.byteReader.getPosition();
     }
 
     get hasOverread () : boolean {
@@ -67,6 +73,13 @@ module Stream {
 
     readScratchBytes (count: int32) {
       return this.readBytes(this.scratchBytes, 0, count);
+    }
+
+    readUint16 () : (uint16 | boolean) {
+      if (this.readScratchBytes(2) === false)
+        return false;
+
+      return this.scratchU16[0];
     }
 
     readUint32 () : (uint32 | boolean) {

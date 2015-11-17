@@ -7,9 +7,9 @@ type WasmTypeId = int32;
 
 module V8NativeDecoder {
   export interface IDecodeHandler {
-    onMemory (minSizeLog2 : int32, maxSizeLog2 : int32, externallyVisible : boolean);
-    onSignature (numArguments : int32, resultType : WasmTypeId);
-    onFunction (nameOffset : int32, signatureIndex : int32, bodyOffset : int32);
+    onMemory (minSizeLog2 : uint32, maxSizeLog2 : uint32, externallyVisible : boolean);
+    onSignature (numArguments : uint32, resultType : WasmTypeId);
+    onFunction (flags: byte, signatureIndex: uint32, nameOffset: uint32, bodyOffset: uint32, bodySize: uint32);
     onEndOfModule ();
   };
 
@@ -23,25 +23,46 @@ module V8NativeDecoder {
     End = 0x06
   };
 
-  function eof () {
-    throw new Error("Unexpected end of file");
+  function eof (offset) {
+    throw new Error("Unexpected end of file at offset " + offset + " in stream");
   }
 
   export function decodeFunctionSection (reader: ValueReader, handler: IDecodeHandler) {
+    // FIXME: What types are these values? Varuint? Varint?
+    var count = reader.readVarUint32();
+    if (count === false)
+      eof(reader.position);
+
+    for (var i = 0; i < count; i++) {
+      var flags = reader.readByte();
+      var signatureIndex = reader.readUint16();
+      var nameOffset = reader.readUint32();
+      var bodySize = reader.readUint16();
+      var bodyOffset = reader.position;
+
+      if (reader.hasOverread)
+        eof(reader.position);
+
+      reader.skip(<uint16>bodySize);
+
+      handler.onFunction(
+        <byte>flags, <uint16>signatureIndex, <uint32>nameOffset, <uint32>bodyOffset, <uint32>bodySize
+      );
+    }
   };
 
   export function decodeSignatureSection (reader: ValueReader, handler: IDecodeHandler) {
     // FIXME: What types are these values? Varuint? Varint?
     var count = reader.readVarUint32();
     if (count === false)
-      eof();
+      eof(reader.position);
 
     for (var i = 0; i < count; i++) {
-      var numArguments = reader.readVarUint32();
+      var numArguments = reader.readByte();
       var resultType = reader.readByte();
 
       if (reader.hasOverread)
-        eof();
+        eof(reader.position);
 
       handler.onSignature(<int32>numArguments, <int32>resultType);
     }
@@ -53,7 +74,7 @@ module V8NativeDecoder {
     var visibility = reader.readByte();
 
     if (reader.hasOverread)
-      eof();
+      eof(reader.position);
 
     handler.onMemory(<byte>minSize, <byte>maxSize, !!visibility);
   };
@@ -80,7 +101,7 @@ module V8NativeDecoder {
 
         case Section.End:
           handler.onEndOfModule();
-          return numSectionsDecoded;
+          return numSectionsDecoded + 1;
 
         default:
           throw new Error("Section type not implemented: " + sectionTypeToken);
