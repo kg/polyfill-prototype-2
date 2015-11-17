@@ -12,7 +12,12 @@ module Stream {
     scratchI32:   Int32Array;
     scratchF64:   Float64Array;
 
-    ValueReader (bytes: Uint8Array, index: int32, count: int32) {
+    constructor (bytes: Uint8Array, index?: int32, count?: int32) {
+      if (typeof (index) !== "number")
+        index = 0;
+      if (typeof (count) !== "number")
+        count = bytes.length;
+
       this.bytes         = bytes;
       this.byteReader    = Encoding.makeByteReader(bytes, index, count);
       this.scratchBytes  = new Uint8Array  (128);

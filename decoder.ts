@@ -9,18 +9,18 @@ module V8NativeDecoder {
   export interface IDecodeHandler {
     onMemory (minSizeLog2 : int32, maxSizeLog2 : int32, externallyVisible : boolean);
     onSignature (numArguments : int32, resultType : WasmTypeId);
-    onFunction (nameOffset : int32, signatureIndex : int32, functionBodyOffset : int32);
+    onFunction (nameOffset : int32, signatureIndex : int32, bodyOffset : int32);
     onEndOfModule ();
   };
 
-  var SECTION = {
-    Memory: 0x00,
-    Signatures: 0x01,
-    Functions: 0x02,
-    Globals: 0x03,
-    DataSegments: 0x04,
-    FunctionTable: 0x05,
-    End: 0x06
+  enum Section {
+    Memory = 0x00,
+    Signatures = 0x01,
+    Functions = 0x02,
+    Globals = 0x03,
+    DataSegments = 0x04,
+    FunctionTable = 0x05,
+    End = 0x06
   };
 
   export function decodeFunctionSection (reader: ValueReader, handler: IDecodeHandler) {
@@ -37,18 +37,22 @@ module V8NativeDecoder {
     var numSectionsDecoded = 0;
 
     while ((sectionTypeToken = reader.readByte()) !== false) {
-      switch (sectionTypeToken) {
-        case SECTION.Memory:
+      switch (<Section>sectionTypeToken) {
+        case Section.Memory:
           decodeMemorySection(reader, handler);
           break;
 
-        case SECTION.Signatures:
+        case Section.Signatures:
           decodeSignatureSection(reader, handler);
           break;
 
-        case SECTION.Functions:
+        case Section.Functions:
           decodeFunctionSection(reader, handler);
           break;
+
+        case Section.End:
+          handler.onEndOfModule();
+          return numSectionsDecoded;
 
         default:
           throw new Error("Section type not implemented: " + sectionTypeToken);
@@ -57,7 +61,6 @@ module V8NativeDecoder {
       numSectionsDecoded += 1;
     }
 
-    handler.onEndOfModule();
     return numSectionsDecoded;
   };
 }
