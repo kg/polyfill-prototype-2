@@ -10,9 +10,8 @@ class MockHandlerProxyHandler {
   }
 
   get (state, propertyName : string, receiver) {
-    var self = this;
-    return function mockedMethod () {
-      self.log.push([propertyName, Array.prototype.slice.call(arguments)]);
+    return (...args) => {
+      this.log.push([propertyName, args]);
     };
   }
 };
