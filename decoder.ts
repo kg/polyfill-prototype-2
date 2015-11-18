@@ -27,7 +27,7 @@ module V8NativeDecoder {
     throw new Error("Unexpected end of file at offset " + offset + " in stream");
   }
 
-  export function decodeFunctionSection (reader: ValueReader, handler: IDecodeHandler) {
+  function decodeFunctionSection (reader: ValueReader, handler: IDecodeHandler) {
     // FIXME: What types are these values? Varuint? Varint?
     var count = reader.readVarUint32();
     if (count === false)
@@ -51,7 +51,7 @@ module V8NativeDecoder {
     }
   };
 
-  export function decodeSignatureSection (reader: ValueReader, handler: IDecodeHandler) {
+  function decodeSignatureSection (reader: ValueReader, handler: IDecodeHandler) {
     // FIXME: What types are these values? Varuint? Varint?
     var count = reader.readVarUint32();
     if (count === false)
@@ -68,7 +68,7 @@ module V8NativeDecoder {
     }
   };
 
-  export function decodeMemorySection (reader: ValueReader, handler: IDecodeHandler) {
+  function decodeMemorySection (reader: ValueReader, handler: IDecodeHandler) {
     var minSize = reader.readByte();
     var maxSize = reader.readByte();
     var visibility = reader.readByte();
