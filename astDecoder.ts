@@ -1,11 +1,13 @@
 /// <reference path="third_party/types.ts" />
 /// <reference path="third_party/stream.ts" />
+/// <reference path="wasm.ts" />
 
 module AstDecoder {
-  type ValueReader = Stream.ValueReader;
-
   export interface IDecodeHandler {
     onBeginNode (name: string);
     onEndNode (name: string);
-  }; 
+  };
+
+  export function decodeFunctionBody (reader: Stream.ValueReader, handler: IDecodeHandler) {
+  }
 }

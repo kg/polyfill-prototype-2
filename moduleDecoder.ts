@@ -20,12 +20,14 @@
 /// <reference path="astDecoder.ts" />
 
 module ModuleDecoder {
-  type ValueReader = Stream.ValueReader;
-
   export interface IDecodeHandler {
     onMemory (minSizeLog2: uint32, maxSizeLog2: uint32, externallyVisible: boolean);
     onSignature (numArguments: uint32, resultType: WasmTypeId);
-    onFunction (flags: byte, signatureIndex: uint32, nameOffset: uint32, bodyOffset: uint32, bodySize: uint32);
+    // Return an AST decode handler to read the function body; otherwise it'll be skipped
+    onFunction (
+      flags: byte, signatureIndex: uint32, nameOffset: uint32, 
+      bodyOffset: uint32, bodySize: uint32
+    ) : AstDecoder.IDecodeHandler;
     onEndOfModule ();
   };
 
@@ -43,7 +45,7 @@ module ModuleDecoder {
     throw new Error("Unexpected end of file at offset " + offset + " in stream");
   }
 
-  function decodeFunctionSection (reader: ValueReader, handler: IDecodeHandler) {
+  function decodeFunctionSection (reader: Stream.ValueReader, handler: IDecodeHandler) {
     // FIXME: What types are these values? Varuint? Varint?
     var count = reader.readVarUint32();
     if (count === false)
@@ -59,15 +61,18 @@ module ModuleDecoder {
       if (reader.hasOverread)
         eof(reader.position);
 
-      reader.skip(<uint16>bodySize);
-
-      handler.onFunction(
+      var astDecodeHandler = handler.onFunction(
         <byte>flags, <uint16>signatureIndex, <uint32>nameOffset, <uint32>bodyOffset, <uint32>bodySize
       );
+
+      var body = reader.readSubstream(<uint32>bodySize);
+
+      if (astDecodeHandler)
+        AstDecoder.decodeFunctionBody(body, astDecodeHandler);
     }
   };
 
-  function decodeSignatureSection (reader: ValueReader, handler: IDecodeHandler) {
+  function decodeSignatureSection (reader: Stream.ValueReader, handler: IDecodeHandler) {
     // FIXME: What types are these values? Varuint? Varint?
     var count = reader.readVarUint32();
     if (count === false)
@@ -84,7 +89,7 @@ module ModuleDecoder {
     }
   };
 
-  function decodeMemorySection (reader: ValueReader, handler: IDecodeHandler) {
+  function decodeMemorySection (reader: Stream.ValueReader, handler: IDecodeHandler) {
     var minSize = reader.readByte();
     var maxSize = reader.readByte();
     var visibility = reader.readByte();
@@ -95,7 +100,7 @@ module ModuleDecoder {
     handler.onMemory(<byte>minSize, <byte>maxSize, !!visibility);
   };
 
-  export function decodeModule (reader: ValueReader, handler: IDecodeHandler) {
+  export function decodeModule (reader: Stream.ValueReader, handler: IDecodeHandler) {
     var sectionTypeToken;
     var numSectionsDecoded = 0;
 

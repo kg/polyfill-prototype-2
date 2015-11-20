@@ -13,7 +13,7 @@ module Stream {
     scratchI32:   Int32Array;
     scratchF64:   Float64Array;
 
-    constructor (bytes: Uint8Array, index?: int32, count?: int32) {
+    constructor (bytes: Uint8Array, index?: uint32, count?: uint32) {
       if (typeof (index) !== "number")
         index = 0;
       if (typeof (count) !== "number")
@@ -40,6 +40,16 @@ module Stream {
       return this.byteReader.eof;
     }
 
+    readSubstream (length: uint32) : ValueReader {
+      var result = new ValueReader(
+        this.bytes, this.byteReader.getPosition(), length
+      );
+
+      this.skip(length);
+
+      return result;
+    }
+
     peekByte (offset : int32) {
       return this.byteReader.peek(offset);
     }
@@ -48,7 +58,7 @@ module Stream {
       return this.byteReader.read();
     }
 
-    readBytes (bufferOrCount : Uint8Array | int32, offset? : int32, count? : number) : (Uint8Array | boolean) {
+    readBytes (bufferOrCount: Uint8Array | int32, offset?: int32, count?: number) : (Uint8Array | boolean) {
       if (arguments.length === 1) {
         count = <number>bufferOrCount | 0;
         var temp = new Uint8Array(count);
