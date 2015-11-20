@@ -1,16 +1,17 @@
 ///<reference path="../third_party/qunit/qunit.d.ts"/>
 ///<reference path="../third_party/stream.ts"/>
-///<reference path="../decoder.ts"/>
+///<reference path="../moduleDecoder.ts"/>
+///<reference path="../astDecoder.ts"/>
 ///<reference path="testUtil.ts"/>
 
 QUnit.module("tests");
 
 test("can decode empty module", function (assert) {
   var log = [];
-  var mh = makeMockHandler(log);
+  var mh = makeMockHandler<ModuleDecoder.IDecodeHandler>(log);
   var reader = makeReader([]);
 
-  var numSections = V8NativeDecoder.decodeModule(reader, mh);
+  var numSections = ModuleDecoder.decodeModule(reader, mh);
 
   assert.equal(numSections, 0);
   assert.equal(log.length, 0);
@@ -18,13 +19,13 @@ test("can decode empty module", function (assert) {
 
 test("decodes memory section", function (assert) {
   var log = [];
-  var mh = makeMockHandler(log);
+  var mh = makeMockHandler<ModuleDecoder.IDecodeHandler>(log);
   var reader = makeReader([
-    V8NativeDecoder.Section.Memory,
+    ModuleDecoder.Section.Memory,
     0x00, 0x00, 0x01
   ]);
 
-  var numSections = V8NativeDecoder.decodeModule(reader, mh);
+  var numSections = ModuleDecoder.decodeModule(reader, mh);
 
   assert.equal(numSections, 1);
   assert.deepEqual(log, [
@@ -34,15 +35,15 @@ test("decodes memory section", function (assert) {
 
 test("decodes signature section", function (assert) {
   var log = [];
-  var mh = makeMockHandler(log);
+  var mh = makeMockHandler<ModuleDecoder.IDecodeHandler>(log);
   var reader = makeReader([
-    V8NativeDecoder.Section.Signatures,
+    ModuleDecoder.Section.Signatures,
     0x02,
     0x00, 0x00,
     0x01, 0x02
   ]);
 
-  var numSections = V8NativeDecoder.decodeModule(reader, mh);
+  var numSections = ModuleDecoder.decodeModule(reader, mh);
 
   assert.equal(numSections, 1);
   assert.deepEqual(log, [
@@ -53,9 +54,9 @@ test("decodes signature section", function (assert) {
 
 test("decodes function section", function (assert) {
   var log = [];
-  var mh = makeMockHandler(log);
+  var mh = makeMockHandler<ModuleDecoder.IDecodeHandler>(log);
   var reader = makeReader([
-    V8NativeDecoder.Section.Functions,
+    ModuleDecoder.Section.Functions,
     0x02,
 
     0x00, // flags
@@ -69,10 +70,10 @@ test("decodes function section", function (assert) {
     0x04, 0x00,
     0x00, 0x00, 0x00, 0x00, // body
 
-    V8NativeDecoder.Section.End
+    ModuleDecoder.Section.End
   ]);
 
-  var numSections = V8NativeDecoder.decodeModule(reader, mh);
+  var numSections = ModuleDecoder.decodeModule(reader, mh);
 
   assert.equal(numSections, 2);
   assert.deepEqual(log, [

@@ -1,4 +1,4 @@
-///<reference path="../decoder.ts"/>
+///<reference path="../third_party/stream.ts"/>
 
 type CallRecord = [string, Array<any>];
 
@@ -20,10 +20,10 @@ declare class Proxy {
   constructor (state: any, handler: any);
 }
 
-function makeMockHandler (log) : V8NativeDecoder.IDecodeHandler {
+function makeMockHandler<T> (log) : T {
   var handler = new MockHandlerProxyHandler(log);
   var result = new Proxy({}, handler);
-  return <V8NativeDecoder.IDecodeHandler>result;
+  return <T>result;
 };
 
 function makeReader (bytes: Array<byte>) {
