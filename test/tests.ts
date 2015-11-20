@@ -2,6 +2,7 @@
 ///<reference path="../third_party/stream.ts"/>
 ///<reference path="../moduleDecoder.ts"/>
 ///<reference path="../astDecoder.ts"/>
+///<reference path="../wasm.ts"/>
 ///<reference path="testUtil.ts"/>
 
 QUnit.module("moduleDecoder");
@@ -96,4 +97,23 @@ test("decodes empty body", function (assert) {
 
   assert.equal(numOpcodes, 0);
   assert.equal(log.length, 0);
+});
+
+test("decodes argumentless opcodes", function (assert) {
+  var log = [];
+  var mh = makeMockHandler<AstDecoder.IDecodeHandler>(log);
+  var reader = makeReader([
+    Wasm.ControlOpcode.Nop,
+    Wasm.ControlOpcode.Unreachable,
+    Wasm.MiscOpcode.MemorySize
+  ]);
+
+  var numOpcodes = AstDecoder.decodeFunctionBody(reader, mh);
+
+  assert.equal(numOpcodes, 3);
+  assert.deepEqual(log, [
+    ["onOpcode", [ Wasm.ControlOpcode.Nop, [], [] ]],
+    ["onOpcode", [ Wasm.ControlOpcode.Unreachable, [], [] ]],
+    ["onOpcode", [ Wasm.MiscOpcode.MemorySize, [], [] ]]
+  ]);
 });
