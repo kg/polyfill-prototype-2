@@ -94,4 +94,12 @@ module Wasm {
     F32StoreMem = 0x35,
     F64StoreMem = 0x36 
   };
+
+  export type Opcode = (
+    ControlOpcode |
+    ConstantOpcode |
+    MiscOpcode |
+    LoadOpcode |
+    StoreOpcode
+  );
 }

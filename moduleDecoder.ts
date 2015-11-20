@@ -100,7 +100,7 @@ module ModuleDecoder {
     handler.onMemory(<byte>minSize, <byte>maxSize, !!visibility);
   };
 
-  export function decodeModule (reader: Stream.ValueReader, handler: IDecodeHandler) {
+  export function decodeModule (reader: Stream.ValueReader, handler: IDecodeHandler) : int32 {
     var sectionTypeToken;
     var numSectionsDecoded = 0;
 

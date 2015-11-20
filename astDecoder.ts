@@ -4,10 +4,20 @@
 
 module AstDecoder {
   export interface IDecodeHandler {
-    onBeginNode (name: string);
-    onEndNode (name: string);
+    onOpcode (opcode: Wasm.Opcode, immediates: any[], stack: Wasm.Opcode[]);
   };
 
-  export function decodeFunctionBody (reader: Stream.ValueReader, handler: IDecodeHandler) {
+  // Expects a subreader containing only the function body
+  export function decodeFunctionBody (reader: Stream.ValueReader, handler: IDecodeHandler) : int32 {
+    var numOpcodesRead = 0, b;
+
+    while ((b = reader.readByte()) !== false) {
+      numOpcodesRead += 1;
+      var opcode = <Wasm.Opcode>b;
+
+      handler.onOpcode(opcode, null, null);
+    }
+
+    return numOpcodesRead;
   }
 }

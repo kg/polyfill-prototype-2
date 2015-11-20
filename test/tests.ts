@@ -4,9 +4,9 @@
 ///<reference path="../astDecoder.ts"/>
 ///<reference path="testUtil.ts"/>
 
-QUnit.module("tests");
+QUnit.module("moduleDecoder");
 
-test("can decode empty module", function (assert) {
+test("decodes empty module", function (assert) {
   var log = [];
   var mh = makeMockHandler<ModuleDecoder.IDecodeHandler>(log);
   var reader = makeReader([]);
@@ -81,4 +81,19 @@ test("decodes function section", function (assert) {
     ["onFunction", [1, 2, 3, 20, 4]],
     ["onEndOfModule", []]
   ]);
+});
+
+
+
+QUnit.module("astDecoder");
+
+test("decodes empty body", function (assert) {
+  var log = [];
+  var mh = makeMockHandler<AstDecoder.IDecodeHandler>(log);
+  var reader = makeReader([]);
+
+  var numOpcodes = AstDecoder.decodeFunctionBody(reader, mh);
+
+  assert.equal(numOpcodes, 0);
+  assert.equal(log.length, 0);
 });
