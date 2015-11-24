@@ -134,3 +134,37 @@ test("decodes argumentless opcodes", function (assert) {
     ["onOpcode", [ Wasm.MiscOpcode.MemorySize, [], [] ]]
   ]);
 });
+
+test("immediate decoder", function (assert) {
+  var log = [];
+  var mh = makeMockHandler<AstDecoder.IDecodeHandler>(log);
+  var reader = makeReader([
+    // Wasm.ConstantOpcode.I8Const,
+    0x02,    
+
+    // Wasm.ConstantOpcode.I32Const,
+    0x04, 0x01, 0x00, 0x00,
+    
+    // todo: i64
+
+    // Wasm.ConstantOpcode.F32Const,
+    0xf3, 0x7f, 0x14, 0x42
+
+    // todo: f64
+  ]);
+
+  assert.equal(
+    AstDecoder.decodeImmediate(reader, 1, false),
+    2
+  );
+
+  assert.equal(
+    AstDecoder.decodeImmediate(reader, 4, false),
+    260
+  );
+
+  assert.equal(
+    Math.floor(AstDecoder.decodeImmediate(reader, 4, true) * 1000),
+    37124
+  );
+});

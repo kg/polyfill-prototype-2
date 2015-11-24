@@ -98,8 +98,12 @@ module Stream {
       return true;
     }
 
-    readScratchBytes (count: int32) {
-      return this.readBytes(this.scratchBytes, 0, count);
+    readScratchBytes (count: int32) : (Uint8Array | boolean) {
+      var read = this.readBytes(this.scratchBytes, 0, count);
+      if (read === false)
+        return read;
+      else
+        return this.scratchBytes;
     }
 
     readUint16 () : (uint16 | boolean) {

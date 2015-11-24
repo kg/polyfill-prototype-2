@@ -43,7 +43,7 @@ module ModuleDecoder {
 
   function eof (offset) {
     throw new Error("Unexpected end of file at offset " + offset + " in stream");
-  }
+  };
 
   function decodeFunctionSection (reader: Stream.ValueReader, handler: IDecodeHandler) {
     // FIXME: What types are these values? Varuint? Varint?

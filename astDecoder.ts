@@ -30,6 +30,33 @@ module AstDecoder {
     );
   };
 
+  export function decodeImmediate (reader: Stream.ValueReader, immediateSizeBytes: uint32, floatingPoint: boolean) : any {
+    var _bytes = reader.readScratchBytes(immediateSizeBytes);
+    if (_bytes === false)
+      return false;
+
+    var bytes = <Uint8Array>_bytes;
+
+    // FIXME: Slow
+    if (floatingPoint) {
+      if (immediateSizeBytes === 4)
+        return (new Float32Array(bytes.buffer, 0, 1))[0];
+      else if (immediateSizeBytes === 8)
+        return (new Float64Array(bytes.buffer, 0, 1))[0];
+      else
+        throw new Error("Expected f32 or f64");
+    } else {
+      if (immediateSizeBytes === 1)
+        return bytes[0];
+      else if (immediateSizeBytes === 2)
+        return (new Int16Array(bytes.buffer, 0, 1))[0];      
+      else if (immediateSizeBytes === 4)
+        return (new Int32Array(bytes.buffer, 0, 1))[0];        
+      else if (immediateSizeBytes === 8)
+        throw new Error("i64 not implemented");
+    }
+  };
+
   // Expects a subreader containing only the function body
   export function decodeFunctionBody (reader: Stream.ValueReader, handler: IDecodeHandler) : int32 {
     var numOpcodesRead = 0, b;
@@ -44,5 +71,5 @@ module AstDecoder {
     }
 
     return numOpcodesRead;
-  }
+  };
 }
