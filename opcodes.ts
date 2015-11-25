@@ -15,24 +15,17 @@
    limitations under the License.
 */
 
+/// <reference path="third_party/types.ts" />
 /// <reference path="wasm.ts" />
 
 module Wasm.OpcodeInfo {
-  export class _ChildNode {
-  }
-
-  // Gross
-  const ChildNode = new _ChildNode();
-
-  export enum ImmediateType {
-    I8,
-    I32,
-    I64,
-    F32,
-    F64
+  export enum OpcodeArgType {
+    Node,
+    Integer,
+    Float
   };
 
-  type OpcodeArg = (_ChildNode | ImmediateType);
+  export type OpcodeArg = [OpcodeArgType, int32];
 
   export class Signature {
     opcode : Wasm.Opcode;
@@ -47,12 +40,28 @@ module Wasm.OpcodeInfo {
   export var Signatures = {};
 
   function defineSignature (opcode: Wasm.Opcode, ...args: OpcodeArg[]) {
+    if (typeof (opcode) !== "number")
+      throw new Error("Invalid opcode passed to defineSignature");
+
     Signatures[opcode] = new Signature(opcode, args);
   }
 
-  defineSignature(Wasm.ConstantOpcode.I8Const, ImmediateType.I8);
-  defineSignature(Wasm.ConstantOpcode.I32Const, ImmediateType.I32);
-  defineSignature(Wasm.ConstantOpcode.I64Const, ImmediateType.I64);
-  defineSignature(Wasm.ConstantOpcode.F32Const, ImmediateType.F32);
-  defineSignature(Wasm.ConstantOpcode.F64Const, ImmediateType.F64);
+  export function getSignature (opcode: Wasm.Opcode) : Signature {
+    var result = Signatures[opcode];
+
+    if (!result)
+      throw new Error("No signature for opcode " + opcode);
+    else
+      return result;
+  }
+
+  defineSignature(Wasm.ControlOpcode.Nop);
+  defineSignature(Wasm.ControlOpcode.Unreachable);
+  defineSignature(Wasm.MiscOpcode.MemorySize);
+
+  defineSignature(Wasm.ConstantOpcode.I8Const, [OpcodeArgType.Integer, 1]);
+  defineSignature(Wasm.ConstantOpcode.I32Const, [OpcodeArgType.Integer, 4]);
+  defineSignature(Wasm.ConstantOpcode.I64Const, [OpcodeArgType.Integer, 8]);
+  defineSignature(Wasm.ConstantOpcode.F32Const, [OpcodeArgType.Float, 4]);
+  defineSignature(Wasm.ConstantOpcode.F64Const, [OpcodeArgType.Float, 8]);
 }

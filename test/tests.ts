@@ -129,9 +129,12 @@ test("decodes argumentless opcodes", function (assert) {
 
   assert.equal(numOpcodes, 3);
   assert.deepEqual(log, [
-    ["onOpcode", [ Wasm.ControlOpcode.Nop, [], [] ]],
-    ["onOpcode", [ Wasm.ControlOpcode.Unreachable, [], [] ]],
-    ["onOpcode", [ Wasm.MiscOpcode.MemorySize, [], [] ]]
+    ["onBeginOpcode", [ Wasm.ControlOpcode.Nop, [] ]],
+    ["onOpcode", [ Wasm.ControlOpcode.Nop, 0, [], [] ]],
+    ["onBeginOpcode", [ Wasm.ControlOpcode.Unreachable, [] ]],
+    ["onOpcode", [ Wasm.ControlOpcode.Unreachable, 0, [], [] ]],
+    ["onBeginOpcode", [ Wasm.MiscOpcode.MemorySize, [] ]],
+    ["onOpcode", [ Wasm.MiscOpcode.MemorySize, 0, [], [] ]]
   ]);
 });
 
@@ -144,7 +147,7 @@ test("immediate decoder", function (assert) {
 
     // Wasm.ConstantOpcode.I32Const,
     0x04, 0x01, 0x00, 0x00,
-    
+
     // todo: i64
 
     // Wasm.ConstantOpcode.F32Const,
@@ -167,4 +170,65 @@ test("immediate decoder", function (assert) {
     Math.floor(AstDecoder.decodeImmediate(reader, 4, true) * 1000),
     37124
   );
+});
+
+test("decodes constant opcodes", function (assert) {
+  var log = [];
+  var mh = makeMockHandler<AstDecoder.IDecodeHandler>(log);
+  var reader = makeReader([
+    Wasm.ConstantOpcode.I8Const,
+    0x02,    
+
+    Wasm.ConstantOpcode.I32Const,
+    0x04, 0x01, 0x00, 0x00,
+
+    // todo: i64
+
+    Wasm.ConstantOpcode.F32Const,
+    0xf3, 0x7f, 0x14, 0x42
+
+    // todo: f64
+  ]);
+
+  var numOpcodes = AstDecoder.decodeFunctionBody(reader, mh);
+
+  assert.equal(numOpcodes, 3);
+  assert.deepEqual(log, [
+    ["onBeginOpcode", [ Wasm.ConstantOpcode.I8Const, [] ]],
+    ["onOpcode", [ Wasm.ConstantOpcode.I8Const, 0, [2], [] ]],
+    ["onBeginOpcode", [ Wasm.ConstantOpcode.I32Const, [] ]],
+    ["onOpcode", [ Wasm.ConstantOpcode.I32Const, 0, [260], [] ]],
+    // fixme: fp precision
+    ["onBeginOpcode", [ Wasm.ConstantOpcode.F32Const, [] ]],
+    ["onOpcode", [ Wasm.ConstantOpcode.F32Const, 0, [37.12495040893555], [] ]]
+  ]);
+});
+
+test("decodes simple nested arithmetic", function (assert) {
+  var log = [];
+  var mh = makeMockHandler<AstDecoder.IDecodeHandler>(log);
+  var reader = makeReader([
+    Wasm.ConstantOpcode.I8Const,
+    0x02,    
+
+    Wasm.ConstantOpcode.I32Const,
+    0x04, 0x01, 0x00, 0x00,
+
+    // todo: i64
+
+    Wasm.ConstantOpcode.F32Const,
+    0xf3, 0x7f, 0x14, 0x42
+
+    // todo: f64
+  ]);
+
+  var numOpcodes = AstDecoder.decodeFunctionBody(reader, mh);
+
+  assert.equal(numOpcodes, 3);
+  assert.deepEqual(log, [
+    ["onOpcode", [ Wasm.ConstantOpcode.I8Const, [2], [] ]],
+    ["onOpcode", [ Wasm.ConstantOpcode.I32Const, [260], [] ]],
+    // fixme: fp precision
+    ["onOpcode", [ Wasm.ConstantOpcode.F32Const, [37.12495040893555], [] ]]
+  ]);
 });

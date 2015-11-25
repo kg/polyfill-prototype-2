@@ -17,7 +17,24 @@
 
 ///<reference path="../third_party/stream.ts"/>
 
-type CallRecord = [string, Array<any>];
+type CallRecord = [string, any[]];
+
+// Copies array literals inside of an array.
+// Doesn't handle object references or cycles.
+function simpleCloneArguments (args: any[]) {
+  var result = new Array(args.length);
+
+  for (var i = 0, l = args.length; i < l; i++) {
+    var val = args[i];
+
+    if (Array.isArray(val))
+      val = simpleCloneArguments(val);
+
+    result[i] = val;
+  }
+
+  return result;
+};
 
 class MockHandlerProxyHandler {
   log : Array<CallRecord>;
@@ -33,7 +50,7 @@ class MockHandlerProxyHandler {
       return this.methods[propertyName];
 
     return (...args) => {
-      this.log.push([propertyName, args]);
+      this.log.push([propertyName, simpleCloneArguments(args)]);
     };
   }
 };

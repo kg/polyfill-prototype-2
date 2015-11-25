@@ -18,14 +18,28 @@
 /// <reference path="third_party/types.ts" />
 /// <reference path="third_party/stream.ts" />
 /// <reference path="wasm.ts" />
+/// <reference path="opcodes.ts" />
 
 module AstDecoder {
   export interface IDecodeHandler {
+    // Runs at the beginning of decoding for a given opcode.
+    // Immediates and child nodes have not been decoded.
+    onBeginOpcode (
+      opcode: Wasm.Opcode,
+      // decoder internal state. copy if you wish to retain.
+      // lists the opcodes above this opcode (non-inclusive)
+      stack: Wasm.Opcode[]
+    );
+
+    // Runs once an opcode is fully decoded (all children have
+    //  already been decoded, and all immediates are ready)
     onOpcode (
       opcode: Wasm.Opcode, 
+      childNodesDecoded: int32,
       // decoder internal state. copy if you wish to retain.
       immediates: any[], 
       // decoder internal state. copy if you wish to retain.
+      // lists the opcodes above this opcode (non-inclusive)
       stack: Wasm.Opcode[]
     );
   };
@@ -60,14 +74,31 @@ module AstDecoder {
   // Expects a subreader containing only the function body
   export function decodeFunctionBody (reader: Stream.ValueReader, handler: IDecodeHandler) : int32 {
     var numOpcodesRead = 0, b;
-    var immediates = [];
     var stack = [];
+    var immediates = [];
 
     while ((b = reader.readByte()) !== false) {
       numOpcodesRead += 1;
       var opcode = <Wasm.Opcode>b;
 
-      handler.onOpcode(opcode, immediates, stack);
+      handler.onBeginOpcode(opcode, stack);
+
+      var signature = Wasm.OpcodeInfo.getSignature(opcode);
+      immediates.length = 0;
+
+      var childNodesDecoded = 0;
+      for (var i = 0, l = signature.arguments.length; i < l; i++) {
+        var arg = signature.arguments[i];
+
+        if (arg[0] === Wasm.OpcodeInfo.OpcodeArgType.Node) {
+          throw new Error("Nested opcodes not yet implemented");
+        } else {
+          var immediate = decodeImmediate(reader, arg[1], arg[0] === Wasm.OpcodeInfo.OpcodeArgType.Float);
+          immediates.push(immediate);
+        }
+      }
+
+      handler.onOpcode(opcode, childNodesDecoded, immediates, stack);
     }
 
     return numOpcodesRead;
