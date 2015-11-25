@@ -22,24 +22,28 @@
 
 module AstDecoder {
   export interface IDecodeHandler {
-    // Runs at the beginning of decoding for a given opcode.
-    // Immediates and child nodes have not been decoded.
+    // Any node with child nodes produces this event before
+    //  decoding child nodes.
+    // Nodes without child nodes only produce onOpcode.
     onBeginOpcode (
       opcode: Wasm.Opcode,
       // decoder internal state. copy if you wish to retain.
-      // lists the opcodes above this opcode (non-inclusive)
+      // lists the opcodes enclosing this opcode (non-inclusive)
       stack: Wasm.Opcode[]
     );
 
-    // Runs once an opcode is fully decoded (all children have
-    //  already been decoded, and all immediates are ready)
+    // This event is produced once a node has been completely
+    //  decoded (including any child nodes).
     onOpcode (
       opcode: Wasm.Opcode, 
+      // The number of child nodes that were decoded as this
+      //  opcode's arguments (i.e. 2 for an add)
       childNodesDecoded: int32,
       // decoder internal state. copy if you wish to retain.
+      // the immediate value args to the opcode (ints, floats) 
       immediates: any[], 
       // decoder internal state. copy if you wish to retain.
-      // lists the opcodes above this opcode (non-inclusive)
+      // lists the opcodes enclosing this opcode (non-inclusive)
       stack: Wasm.Opcode[]
     );
   };
@@ -71,35 +75,70 @@ module AstDecoder {
     }
   };
 
+  const emptyArray = [];
+
+  // TODO: Nonrecursive
+  function decodeNode (reader: Stream.ValueReader, handler: IDecodeHandler, stack: Wasm.Opcode[]) : int32 {
+    var b = reader.readByte();
+    if (b === false)
+      return 0;
+
+    var result = 1;
+    var opcode = <Wasm.Opcode>b;
+    var signature = Wasm.OpcodeInfo.getSignature(opcode);
+    var childNodesDecoded = 0;
+    var immediates = null;
+
+    var hasFiredBegin = false;
+
+    for (var i = 0, l = signature.arguments.length; i < l; i++) {
+      var arg = signature.arguments[i];
+      var argType = arg[0];
+
+      if (argType === Wasm.OpcodeInfo.OpcodeArgType.Node) {
+        // opcode argument record: [Node, numNodes]
+
+        // Any node with child nodes fires an onBeginOpcode first
+        if (!hasFiredBegin) {
+          hasFiredBegin = true;
+          handler.onBeginOpcode(opcode, stack);          
+        }
+
+        var childNodeCount = arg[1];
+        stack.push(opcode);
+
+        for (var j = 0; j < childNodeCount; j++)
+          result += decodeNode(reader, handler, stack);
+
+        if (stack.pop() !== opcode)
+          throw new Error("Decode stack misalignment");
+        childNodesDecoded += childNodeCount;
+      } else {
+        // opcode argument record: [Int | Float, sizeBytes]
+
+        var isFloat = argType === Wasm.OpcodeInfo.OpcodeArgType.Float;
+        var sizeBytes = arg[1];
+
+        var immediate = decodeImmediate(reader, sizeBytes, isFloat);
+
+        if (immediates == null)
+          immediates = [];
+        immediates.push(immediate);
+      }
+    }
+
+    handler.onOpcode(opcode, childNodesDecoded, immediates || emptyArray, stack);
+
+    return result;
+  }
+
   // Expects a subreader containing only the function body
   export function decodeFunctionBody (reader: Stream.ValueReader, handler: IDecodeHandler) : int32 {
     var numOpcodesRead = 0, b;
     var stack = [];
-    var immediates = [];
 
-    while ((b = reader.readByte()) !== false) {
-      numOpcodesRead += 1;
-      var opcode = <Wasm.Opcode>b;
-
-      handler.onBeginOpcode(opcode, stack);
-
-      var signature = Wasm.OpcodeInfo.getSignature(opcode);
-      immediates.length = 0;
-
-      var childNodesDecoded = 0;
-      for (var i = 0, l = signature.arguments.length; i < l; i++) {
-        var arg = signature.arguments[i];
-
-        if (arg[0] === Wasm.OpcodeInfo.OpcodeArgType.Node) {
-          throw new Error("Nested opcodes not yet implemented");
-        } else {
-          var immediate = decodeImmediate(reader, arg[1], arg[0] === Wasm.OpcodeInfo.OpcodeArgType.Float);
-          immediates.push(immediate);
-        }
-      }
-
-      handler.onOpcode(opcode, childNodesDecoded, immediates, stack);
-    }
+    while (!reader.eof && !reader.hasOverread)
+      numOpcodesRead += decodeNode(reader, handler, stack);
 
     return numOpcodesRead;
   };

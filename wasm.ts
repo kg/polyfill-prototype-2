@@ -232,12 +232,13 @@ module Wasm {
     I32ReinterpretF32 = 0xb4, // i_f
     I64ReinterpretF64 = 0xb5, // l_d
   };
-  
+
   export type Opcode = (
     ControlOpcode |
     ConstantOpcode |
     MiscOpcode |
     LoadOpcode |
-    StoreOpcode
+    StoreOpcode |
+    SimpleOpcode
   );
 }

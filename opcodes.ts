@@ -46,18 +46,39 @@ module Wasm.OpcodeInfo {
     Signatures[opcode] = new Signature(opcode, args);
   }
 
+  export function getOpcodeName (opcode: Wasm.Opcode) : string {
+    var tables = [
+      Wasm.ControlOpcode,
+      Wasm.ConstantOpcode,
+      Wasm.MiscOpcode,
+      Wasm.LoadOpcode,
+      Wasm.StoreOpcode,
+      Wasm.SimpleOpcode
+    ];
+
+    for (var i = 0, l = tables.length; i < l; i++) {
+      var result = tables[i][opcode];
+      if (typeof (result) === "string")
+        return result;
+    }
+
+    return "<unknown>";
+  };
+
   export function getSignature (opcode: Wasm.Opcode) : Signature {
     var result = Signatures[opcode];
 
     if (!result)
-      throw new Error("No signature for opcode " + opcode);
+      throw new Error("No signature for opcode " + opcode + " (" + getOpcodeName(opcode) + ")");
     else
       return result;
-  }
+  };
 
   defineSignature(Wasm.ControlOpcode.Nop);
   defineSignature(Wasm.ControlOpcode.Unreachable);
   defineSignature(Wasm.MiscOpcode.MemorySize);
+
+  defineSignature(Wasm.SimpleOpcode.I32Add, [OpcodeArgType.Node, 2]);
 
   defineSignature(Wasm.ConstantOpcode.I8Const, [OpcodeArgType.Integer, 1]);
   defineSignature(Wasm.ConstantOpcode.I32Const, [OpcodeArgType.Integer, 4]);
