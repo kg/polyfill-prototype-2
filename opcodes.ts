@@ -46,6 +46,11 @@ module Wasm.OpcodeInfo {
     Signatures[opcode] = new Signature(opcode, args);
   }
 
+  function defineSignatures (opcodes: Wasm.Opcode[], args: OpcodeArg[]) {
+    for (var i = 0, l = opcodes.length; i < l; i++)
+      defineSignature(opcodes[i], ...args);
+  }
+
   export function getOpcodeName (opcode: Wasm.Opcode) : string {
     var tables = [
       Wasm.ControlOpcode,
@@ -78,7 +83,80 @@ module Wasm.OpcodeInfo {
   defineSignature(Wasm.ControlOpcode.Unreachable);
   defineSignature(Wasm.MiscOpcode.MemorySize);
 
-  defineSignature(Wasm.SimpleOpcode.I32Add, [OpcodeArgType.Node, 2]);
+  const _n : OpcodeArg[] = [[OpcodeArgType.Node, 1]];
+  const _nn : OpcodeArg[] = [[OpcodeArgType.Node, 2]];
+
+  defineSignatures(
+    [
+      Wasm.SimpleOpcode.I32Clz,
+      Wasm.SimpleOpcode.I32Ctz,
+      Wasm.SimpleOpcode.I32Popcnt,
+    ], _n
+  );
+
+  defineSignatures(
+    [
+      Wasm.SimpleOpcode.I32Add,
+      Wasm.SimpleOpcode.I32Sub,
+      Wasm.SimpleOpcode.I32Mul,
+      Wasm.SimpleOpcode.I32DivS,
+      Wasm.SimpleOpcode.I32DivU,
+      Wasm.SimpleOpcode.I32RemS,
+      Wasm.SimpleOpcode.I32RemU,
+      Wasm.SimpleOpcode.I32And,
+      Wasm.SimpleOpcode.I32Ior,
+      Wasm.SimpleOpcode.I32Xor,
+      Wasm.SimpleOpcode.I32Shl,
+      Wasm.SimpleOpcode.I32ShrU,
+      Wasm.SimpleOpcode.I32ShrS,
+      Wasm.SimpleOpcode.I32Eq,
+      Wasm.SimpleOpcode.I32Ne,
+      Wasm.SimpleOpcode.I32LtS, 
+      Wasm.SimpleOpcode.I32LeS,
+      Wasm.SimpleOpcode.I32LtU, 
+      Wasm.SimpleOpcode.I32LeU, 
+      Wasm.SimpleOpcode.I32GtS, 
+      Wasm.SimpleOpcode.I32GeS, 
+      Wasm.SimpleOpcode.I32GtU, 
+      Wasm.SimpleOpcode.I32GeU,
+    ], _nn
+  );
+
+  defineSignatures(
+    [
+      Wasm.SimpleOpcode.I64Clz,
+      Wasm.SimpleOpcode.I64Ctz,
+      Wasm.SimpleOpcode.I64Popcnt,
+    ], _n
+  );
+
+  defineSignatures(
+    [
+      Wasm.SimpleOpcode.I64Add,
+      Wasm.SimpleOpcode.I64Sub,
+      Wasm.SimpleOpcode.I64Mul,
+      Wasm.SimpleOpcode.I64DivS,
+      Wasm.SimpleOpcode.I64DivU,
+      Wasm.SimpleOpcode.I64RemS,
+      Wasm.SimpleOpcode.I64RemU,
+      Wasm.SimpleOpcode.I64And,
+      Wasm.SimpleOpcode.I64Ior,
+      Wasm.SimpleOpcode.I64Xor,
+      Wasm.SimpleOpcode.I64Shl,
+      Wasm.SimpleOpcode.I64ShrU,
+      Wasm.SimpleOpcode.I64ShrS,
+      Wasm.SimpleOpcode.I64Eq,
+      Wasm.SimpleOpcode.I64Ne,
+      Wasm.SimpleOpcode.I64LtS, 
+      Wasm.SimpleOpcode.I64LeS,
+      Wasm.SimpleOpcode.I64LtU, 
+      Wasm.SimpleOpcode.I64LeU, 
+      Wasm.SimpleOpcode.I64GtS, 
+      Wasm.SimpleOpcode.I64GeS, 
+      Wasm.SimpleOpcode.I64GtU, 
+      Wasm.SimpleOpcode.I64GeU,
+    ], _nn
+  );
 
   defineSignature(Wasm.ConstantOpcode.I8Const, [OpcodeArgType.Integer, 1]);
   defineSignature(Wasm.ConstantOpcode.I32Const, [OpcodeArgType.Integer, 4]);
