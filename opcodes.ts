@@ -51,7 +51,7 @@ module Wasm.OpcodeInfo {
       defineSignature(opcodes[i], ...args);
   }
 
-  export function getOpcodeName (opcode: Wasm.Opcode) : string {
+  export function getName (opcode: Wasm.Opcode) : string {
     var tables = [
       Wasm.ControlOpcode,
       Wasm.ConstantOpcode,
@@ -74,7 +74,7 @@ module Wasm.OpcodeInfo {
     var result = Signatures[opcode];
 
     if (!result)
-      throw new Error("No signature for opcode " + opcode + " (" + getOpcodeName(opcode) + ")");
+      throw new Error("No signature for opcode 0x" + opcode.toString(16) + " (" + getName(opcode) + ")");
     else
       return result;
   };
@@ -156,6 +156,36 @@ module Wasm.OpcodeInfo {
       Wasm.SimpleOpcode.I64GtU, 
       Wasm.SimpleOpcode.I64GeU,
     ], _nn
+  );
+
+  defineSignatures(
+    [
+      Wasm.SimpleOpcode.I32SConvertF32,
+      Wasm.SimpleOpcode.I32SConvertF64,
+      Wasm.SimpleOpcode.I32UConvertF32,
+      Wasm.SimpleOpcode.I32UConvertF64,
+      Wasm.SimpleOpcode.I32ConvertI64,
+      Wasm.SimpleOpcode.I64SConvertF32,
+      Wasm.SimpleOpcode.I64SConvertF64,
+      Wasm.SimpleOpcode.I64UConvertF32,
+      Wasm.SimpleOpcode.I64UConvertF64,
+      Wasm.SimpleOpcode.I64SConvertI32,
+      Wasm.SimpleOpcode.I64UConvertI32,
+      Wasm.SimpleOpcode.F32SConvertI32,
+      Wasm.SimpleOpcode.F32UConvertI32,
+      Wasm.SimpleOpcode.F32SConvertI64,
+      Wasm.SimpleOpcode.F32UConvertI64,
+      Wasm.SimpleOpcode.F32ConvertF64,
+      Wasm.SimpleOpcode.F32ReinterpretI32,
+      Wasm.SimpleOpcode.F64SConvertI32,
+      Wasm.SimpleOpcode.F64UConvertI32,
+      Wasm.SimpleOpcode.F64SConvertI64,
+      Wasm.SimpleOpcode.F64UConvertI64,
+      Wasm.SimpleOpcode.F64ConvertF32,
+      Wasm.SimpleOpcode.F64ReinterpretI64,
+      Wasm.SimpleOpcode.I32ReinterpretF32,
+      Wasm.SimpleOpcode.I64ReinterpretF64,
+    ], _n
   );
 
   defineSignature(Wasm.ConstantOpcode.I8Const, [OpcodeArgType.Integer, 1]);

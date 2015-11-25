@@ -219,3 +219,50 @@ test("decodes simple nested arithmetic", function (assert) {
     ["onOpcode", [ Wasm.SimpleOpcode.I32Add, 2, [], [] ]],
   ]);
 });
+
+test("decodes convert.txt", function (assert) {
+  var stream = [];
+
+  var handler = {
+    onBeginOpcode: function (opcode, _) {
+    },
+    onOpcode: function (opcode, childNodesDecoded, immediates, _) {
+      var node : any[] = [
+        Wasm.OpcodeInfo.getName(opcode)
+      ];
+
+      if (childNodesDecoded) {
+        var offset = stream.length - childNodesDecoded;
+        var childNodes = stream.slice(offset, childNodesDecoded);
+        stream.splice(offset, childNodesDecoded);
+        node.splice(1, 0, ...childNodes);
+      }
+      
+      node.splice(node.length, 0, ...immediates);
+
+      stream.push(node);
+    }
+  };
+
+  var reader = makeReader([
+    0xa1, 0xa7,
+    0x9d, 0xa8,
+    0x9f, 0xa9,
+    0x9e, 0xae,
+    0xa0, 0xaf,
+    0x09, 0x00,
+    0xa2, 0xaa,
+    0xa4, 0xab,
+    0xa3, 0xb0,
+    0xa5, 0xb1,
+    0xa6, 0x09,
+    0x00, 0xac,
+    0xb2, 0x0d,
+    0x00, 0x00, 0x00, 0x00
+  ]);
+
+  var numOpcodes = AstDecoder.decodeFunctionBody(reader, handler);
+
+  assert.equal(numOpcodes, 3);
+  assert.deepEqual(JSON.stringify(stream, null, 2), "");
+});
