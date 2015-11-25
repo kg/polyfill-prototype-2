@@ -220,6 +220,39 @@ test("decodes simple nested arithmetic", function (assert) {
   ]);
 });
 
+class _Node {
+  name: string;
+  args: any[];
+
+  public constructor (name: string) {
+    this.name = name;
+    this.args = [];
+  }
+
+  toString () : string {
+    var result = "(" + this.name;
+
+    for (var i = 0, l = this.args.length; i < l; i++) {
+      var child = this.args[i].toString();
+
+      if ((this.args.length === 1) && (child.indexOf("(") < 0)) {
+        result += " " + child;
+        break;
+      } else if (i === 0) {
+        result += "\n";
+      }
+
+      var childLines = child.split("\n");
+      for (var j = 0, l2 = childLines.length; j < l2; j++) {
+        result += "  " + childLines[j] + "\n";
+      }
+    }
+
+    result += ")";
+    return result;
+  }
+};
+
 test("decodes convert.txt", function (assert) {
   var stream = [];
 
@@ -227,18 +260,20 @@ test("decodes convert.txt", function (assert) {
     onBeginOpcode: function (opcode, _) {
     },
     onOpcode: function (opcode, childNodesDecoded, immediates, _) {
-      var node : any[] = [
-        Wasm.OpcodeInfo.getName(opcode)
-      ];
+      var name = Wasm.OpcodeInfo.getName(opcode);
+      var node = new _Node(name);
 
       if (childNodesDecoded) {
-        var offset = stream.length - childNodesDecoded;
-        var childNodes = stream.slice(offset, childNodesDecoded);
-        stream.splice(offset, childNodesDecoded);
-        node.splice(1, 0, ...childNodes);
+        var childNodes = stream.slice(-childNodesDecoded);
+        if (childNodes.length !== childNodesDecoded)
+          throw new Error("Didn't find my children :-((((");
+
+        stream.splice(-childNodesDecoded, childNodesDecoded);
+
+        node.args.push.apply(node.args, childNodes);
       }
-      
-      node.splice(node.length, 0, ...immediates);
+
+      node.args.push.apply(node.args, immediates);
 
       stream.push(node);
     }
@@ -264,5 +299,5 @@ test("decodes convert.txt", function (assert) {
   var numOpcodes = AstDecoder.decodeFunctionBody(reader, handler);
 
   assert.equal(numOpcodes, 3);
-  assert.deepEqual(JSON.stringify(stream, null, 2), "");
+  assert.equal(stream.toString(), "");
 });
