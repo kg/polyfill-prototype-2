@@ -335,21 +335,32 @@ test("decodes convert.txt", function (assert) {
     }
   };
 
+  var opcodes = Wasm.Opcodes;
+
+/*
+0000027: a6                                         ; OPCODE_I64_SCONVERT_I32
+0000028: 09                                         ; OPCODE_I8_CONST
+0000029: 00                                         ; u8 literal
+000002a: ac                                         ; OPCODE_F32_CONVERT_F64
+000002b: b2                                         ; OPCODE_F64_CONVERT_F32
+000002c: 0d                                         ; OPCODE_F32_CONST
+*/
+
   var reader = makeReader([
-    0xa1, 0xa7,
-    0x9d, 0xa8,
-    0x9f, 0xa9,
-    0x9e, 0xae,
-    0xa0, 0xaf,
-    0x09, 0x00,
-    0xa2, 0xaa,
-    0xa4, 0xab,
-    0xa3, 0xb0,
-    0xa5, 0xb1,
-    0xa6, 0x09,
-    0x00, 0xac,
-    0xb2, 0x0d,
-    0x00, 0x00, 0x00, 0x00
+    opcodes.I32ConvertI64, opcodes.I64UConvertI32,
+    opcodes.I32SConvertF32, opcodes.F32SConvertI32,
+    opcodes.I32UConvertF32, opcodes.F32UConvertI32,
+    opcodes.I32SConvertF64, opcodes.F64SConvertI32,
+    opcodes.I32UConvertF64, opcodes.F64UConvertI32,
+    opcodes.I8Const, 0x00,
+    opcodes.I64SConvertF32, opcodes.F32SConvertI64,
+    opcodes.I64UConvertF32, opcodes.F32UConvertI64,
+    opcodes.I64SConvertF64, opcodes.F64SConvertI64,
+    opcodes.I64UConvertF64, opcodes.F64UConvertI64,
+    opcodes.I64SConvertI32,
+    opcodes.I8Const, 0x00,
+    opcodes.F32ConvertF64, opcodes.F64ConvertF32,
+    opcodes.F32Const, 0x00, 0x00, 0x00, 0x00
   ]);
 
   var numOpcodes = AstDecoder.decodeFunctionBody(reader, handler);

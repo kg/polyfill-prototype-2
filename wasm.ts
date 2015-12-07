@@ -241,4 +241,24 @@ module Wasm {
     StoreOpcode |
     SimpleOpcode
   );
+
+  export var Opcodes : any = {};
+
+  var tables = [
+    ControlOpcode, ConstantOpcode, MiscOpcode,
+    LoadOpcode, StoreOpcode, SimpleOpcode
+  ];
+
+  for (var i = 0, l = tables.length; i < l; i++) {
+    var table = tables[i];
+    for (var key in table) {
+      if (!table.hasOwnProperty(key))
+        continue;
+
+      if (Opcodes[key])
+        throw new Error("Duplicate opcode " + key);
+
+      Opcodes[key] = table[key];
+    }
+  }
 }
