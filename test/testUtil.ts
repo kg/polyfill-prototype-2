@@ -90,10 +90,12 @@ class MockModuleHandler implements ModuleDecoder.IDecodeHandler {
     var sig : MockSignature = [
       resultType, argumentTypes.slice()
     ];
+    console.log("//  signature " + sig[0] + " [" + sig[1] + "]");
     this.signatures.push(sig);
   }
 
   onFunction (...args) {
+    console.log("//  function " + args);
     return this.astHandler;
   }
 

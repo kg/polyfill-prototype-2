@@ -220,6 +220,8 @@ test("decodes simple nested arithmetic", function (assert) {
 });
 
 test("decodes convert.txt", function (assert) {
+  console.log("// convert.txt");
+
   var handler = new MockAstHandler(assert);
   var stream = handler.stream;
 
@@ -268,6 +270,8 @@ test("decodes convert.txt", function (assert) {
 });
 
 test("decodes call.txt", function (assert) {
+  console.log("// call.txt");
+
   var moduleHandler = new MockModuleHandler(assert);
   var handler = moduleHandler.astHandler;
   var stream = handler.stream;
@@ -306,6 +310,71 @@ test("decodes call.txt", function (assert) {
         ["I8Const", [9]],
         // signature index
         [0]
+      ]
+    ]
+  );
+});
+
+test("decodes block.txt", function (assert) {
+  console.log("// block.txt");
+
+  var moduleHandler = new MockModuleHandler(assert);
+  var handler = moduleHandler.astHandler;
+  var stream = handler.stream;
+
+  var opcodes = Wasm.Opcodes;
+  var reader = makeReader([
+    ModuleDecoder.Section.Signatures,
+    0x02,
+
+    0x00,
+    0x00,
+
+    0x00,
+    0x01,
+
+    ModuleDecoder.Section.Functions,
+    0x02,
+
+    0x00,
+    0x00, 0x00,
+    0x05, 0x00,
+
+    opcodes.Block,
+    0x03,
+    opcodes.Nop,
+    opcodes.Nop,
+    opcodes.Nop,
+
+    0x00,
+    0x01, 0x00,
+    0x04, 0x00,
+
+    opcodes.Block,
+    0x01,
+    opcodes.I8Const,
+    0x01,
+
+    ModuleDecoder.Section.End
+  ]);
+
+  assert.equal(ModuleDecoder.decodeModule(reader, moduleHandler), 3);
+  console.log(stream.toString());
+
+  stream[0].assertTree(
+    ["Block",
+      [
+        ["Nop"],
+        ["Nop"],
+        ["Nop"]
+      ]
+    ]
+  );
+
+  stream[1].assertTree(
+    ["Block",
+      [
+        ["I8Const", [1]],
       ]
     ]
   );

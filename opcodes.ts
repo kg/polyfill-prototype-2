@@ -27,7 +27,8 @@ module Wasm.OpcodeInfo {
   };
 
   export enum SpecialArgType {
-    FunctionCall
+    FunctionCall,
+    Block
   };
 
   export type OpcodeArg = [OpcodeArgType, int32] | SpecialArgType;
@@ -203,7 +204,11 @@ module Wasm.OpcodeInfo {
 
   defineSignature(
     Wasm.MiscOpcode.CallFunction, 
-    // FIXME: Is this right?
     SpecialArgType.FunctionCall
+  );
+
+  defineSignature(
+    Wasm.ControlOpcode.Block,
+    SpecialArgType.Block
   );
 }

@@ -89,6 +89,7 @@ module AstDecoder {
 
   // TODO: Nonrecursive
   function decodeSpecial (reader: Stream.ValueReader, handler: IDecodeHandler, stack: Wasm.Opcode[], immediates, opcode: Wasm.Opcode, specialType: Wasm.OpcodeInfo.SpecialArgType) : int32 {    
+    var result = 0;
     console.log("decode special " + specialType);
 
     switch (specialType) {
@@ -107,14 +108,30 @@ module AstDecoder {
 
         console.log("special argument count " + signature.numArguments);
         for (var i = 0; i < signature.numArguments; i++)
-          decodeNode(reader, handler, stack);
+          result += decodeNode(reader, handler, stack);
 
         if (stack.pop() !== opcode)
           throw new Error("Decode stack misalignment");
 
         immediates.push(signatureIndex);
 
-        return signature.numArguments;
+        return result;
+
+      case Wasm.OpcodeInfo.SpecialArgType.Block:
+        // FIXME: LEB128?
+        // FIXME: eof handling
+        var numChildren = <int32>reader.readByte();
+
+        stack.push(opcode);
+
+        console.log("block containing " + numChildren + " nodes");
+        for (var i = 0; i < numChildren; i++)
+          result += decodeNode(reader, handler, stack);
+
+        if (stack.pop() !== opcode)
+          throw new Error("Decode stack misalignment");
+
+        return result;
     }
 
     throw new Error("Special type " + specialType + " (" + Wasm.OpcodeInfo.SpecialArgType[specialType] + ") not implemented");

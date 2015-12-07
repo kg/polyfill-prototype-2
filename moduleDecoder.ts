@@ -88,6 +88,8 @@ module ModuleDecoder {
 
     var argumentTypes = [];
 
+    console.log("reading " + count + " signatures");
+
     for (var i = 0; i < count; i++) {
       var numArguments = reader.readByte();
       if (numArguments === false)
@@ -96,8 +98,8 @@ module ModuleDecoder {
       var resultType = reader.readByte();
 
       argumentTypes.length = <uint32>numArguments;
-      for (var i = 0; i < numArguments; i++)
-        argumentTypes[i] = reader.readByte()
+      for (var j = 0; j < numArguments; j++)
+        argumentTypes[j] = reader.readByte()
 
       if (reader.hasOverread)
         eof(reader.position);
@@ -124,6 +126,8 @@ module ModuleDecoder {
     while ((sectionTypeToken = reader.readByte()) !== false) {
       var sectionType = <Section>sectionTypeToken;
 
+      console.log("//  section " + sectionType + " (" + Section[sectionTypeToken] + ")");
+
       switch (sectionType) {
         case Section.Memory:
           decodeMemorySection(reader, handler);
@@ -142,7 +146,7 @@ module ModuleDecoder {
           return numSectionsDecoded + 1;
 
         default:
-          throw new Error("Section type not implemented: " + sectionTypeToken);
+          throw new Error("Section type not implemented: " + sectionTypeToken + " (" + Section[sectionTypeToken] + ")");
       }
 
       numSectionsDecoded += 1;
