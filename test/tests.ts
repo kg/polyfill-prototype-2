@@ -223,8 +223,10 @@ test("decodes simple nested arithmetic", function (assert) {
 class _Node {
   name: string;
   args: any[];
+  _assert: any;
 
-  public constructor (name: string) {
+  public constructor (assert, name: string) {
+    this._assert = assert;
     this.name = name;
     this.args = [];
   }
@@ -251,6 +253,60 @@ class _Node {
     result += ")";
     return result;
   }
+
+  assertIs (name: string) {
+    this._assert.equal(this.name, name);
+  }
+
+  assertTree (names: (string | any[])[]) {
+    this._assert.equal(this.name, names[0]);
+
+    var node = this;
+    var nodeName = this.name;
+    var parent = null;
+
+    for (var i = 1, l = names.length; i < l; i++) {
+      var nameOrArray = names[i];
+      var next = null;
+
+      if (typeof (nameOrArray) === "string") {
+        var childName = <string>nameOrArray;
+        for (var j = 0, l2 = node.args.length; j < l2; j++) {
+          var child = node.args[j];
+          if (child.name === childName)
+            next = child;
+          break;
+        }
+
+        this._assert.ok(next, "expected '" + nodeName + "' to have a child '" + childName + "'");
+
+        if (next) {
+          parent = node;
+          node = next;
+          nodeName = node.name;
+        } else {
+          return false;
+        }
+      } else {
+        var array = <any[]>nameOrArray;
+        this._assert.equal(node.args.length, array.length, "expected '" + nodeName + "' to have n children");
+
+        for (var j = 0, l2 = array.length; j < l2; j++) {
+          var child = node.args[j];
+
+          if (child && child.assertTree)
+            child.assertTree(array[j]);
+          else
+            this._assert.equal(child, array[j], "expected '" + nodeName + "' to have child '" + array[j] + "'");
+        }
+
+        return true;
+      }
+    }
+
+    if (node.args.length !== 0)
+      this._assert.ok(false, "expected '" + nodeName + "' to have no children");
+  }
 };
 
 test("decodes convert.txt", function (assert) {
@@ -261,7 +317,7 @@ test("decodes convert.txt", function (assert) {
     },
     onOpcode: function (opcode, childNodesDecoded, immediates, _) {
       var name = Wasm.OpcodeInfo.getName(opcode);
-      var node = new _Node(name);
+      var node = new _Node(assert, name);
 
       if (childNodesDecoded) {
         var childNodes = stream.slice(-childNodesDecoded);
@@ -298,6 +354,26 @@ test("decodes convert.txt", function (assert) {
 
   var numOpcodes = AstDecoder.decodeFunctionBody(reader, handler);
 
-  assert.equal(numOpcodes, 3);
-  assert.equal(stream.toString(), "");
+  stream[0].assertTree(
+    ["I32ConvertI64", "I64UConvertI32", "I32SConvertF32",
+      "F32SConvertI32", "I32UConvertF32", "F32UConvertI32",
+      "I32SConvertF64", "F64SConvertI32", "I32UConvertF64",
+      "F64UConvertI32", 
+      "I8Const", [0]
+    ]
+  );
+
+  stream[1].assertTree(
+    ["I64SConvertF32", "F32SConvertI64", "I64UConvertF32",
+      "F32UConvertI64", "I64SConvertF64", "F64SConvertI64", 
+      "I64UConvertF64", "F64UConvertI64", "I64SConvertI32",
+      "I8Const", [0]
+    ]
+  );
+
+  stream[2].assertTree(
+    ["F32ConvertF64", "F64ConvertF32",
+      "F32Const", [0]
+    ]
+  );
 });
