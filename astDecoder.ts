@@ -22,6 +22,16 @@
 
 module AstDecoder {
   export interface IDecodeHandler {
+    // Called by the decoder to determine how many child nodes 
+    //  a given function call has. Write the results into 'result'    
+    getFunctionSignatureByIndex (
+      index: uint32,
+      result: {
+        numArguments: uint32,
+        returnType: Wasm.LocalType
+      }
+    );
+
     // Any node with child nodes produces this event before
     //  decoding child nodes.
     // Nodes without child nodes only produce onOpcode.
@@ -38,10 +48,10 @@ module AstDecoder {
       opcode: Wasm.Opcode, 
       // The number of child nodes that were decoded as this
       //  opcode's arguments (i.e. 2 for an add)
-      childNodesDecoded: int32,
+      childNodesDecoded: uint32,
       // decoder internal state. copy if you wish to retain.
       // the immediate value args to the opcode (ints, floats) 
-      immediates: any[], 
+      immediates: Immediate[], 
       // decoder internal state. copy if you wish to retain.
       // lists the opcodes enclosing this opcode (non-inclusive)
       stack: Wasm.Opcode[]
@@ -78,6 +88,39 @@ module AstDecoder {
   const emptyArray = [];
 
   // TODO: Nonrecursive
+  function decodeSpecial (reader: Stream.ValueReader, handler: IDecodeHandler, stack: Wasm.Opcode[], immediates, opcode: Wasm.Opcode, specialType: Wasm.OpcodeInfo.SpecialArgType) : int32 {    
+    console.log("decode special " + specialType);
+
+    switch (specialType) {
+      case Wasm.OpcodeInfo.SpecialArgType.FunctionCall:
+        // FIXME: LEB128?
+        // FIXME: eof handling
+        var signatureIndex = reader.readByte();
+        // FIXME: reuse
+        var signature = {
+          numArguments: 0,
+          returnType: 0
+        };
+        handler.getFunctionSignatureByIndex(<uint32>signatureIndex, signature);
+
+        stack.push(opcode);
+
+        console.log("special argument count " + signature.numArguments);
+        for (var i = 0; i < signature.numArguments; i++)
+          decodeNode(reader, handler, stack);
+
+        if (stack.pop() !== opcode)
+          throw new Error("Decode stack misalignment");
+
+        immediates.push(signatureIndex);
+
+        return signature.numArguments;
+    }
+
+    throw new Error("Special type " + specialType + " (" + Wasm.OpcodeInfo.SpecialArgType[specialType] + ") not implemented");
+  }
+
+  // TODO: Nonrecursive
   function decodeNode (reader: Stream.ValueReader, handler: IDecodeHandler, stack: Wasm.Opcode[]) : int32 {
     var b = reader.readByte();
     if (b === false)
@@ -85,47 +128,54 @@ module AstDecoder {
 
     var result = 1;
     var opcode = <Wasm.Opcode>b;
+    console.log("+opcode " + b + "(" + Wasm.OpcodeInfo.getName(opcode) + ")");
     var signature = Wasm.OpcodeInfo.getSignature(opcode);
     var childNodesDecoded = 0;
-    var immediates = null;
+
+    // FIXME: Reuse
+    var immediates = [];
 
     var hasFiredBegin = false;
 
     for (var i = 0, l = signature.arguments.length; i < l; i++) {
       var arg = signature.arguments[i];
-      var argType = arg[0];
 
-      if (argType === Wasm.OpcodeInfo.OpcodeArgType.Node) {
-        // opcode argument record: [Node, numNodes]
-
-        // Any node with child nodes fires an onBeginOpcode first
-        if (!hasFiredBegin) {
-          hasFiredBegin = true;
-          handler.onBeginOpcode(opcode, stack);          
-        }
-
-        var childNodeCount = arg[1];
-        stack.push(opcode);
-
-        for (var j = 0; j < childNodeCount; j++)
-          result += decodeNode(reader, handler, stack);
-
-        if (stack.pop() !== opcode)
-          throw new Error("Decode stack misalignment");
-        childNodesDecoded += childNodeCount;
+      if (!Array.isArray(arg)) {
+        childNodesDecoded += decodeSpecial(reader, handler, stack, immediates, opcode, arg);
       } else {
-        // opcode argument record: [Int | Float, sizeBytes]
+        var argType = arg[0];
 
-        var isFloat = argType === Wasm.OpcodeInfo.OpcodeArgType.Float;
-        var sizeBytes = arg[1];
+        if (argType === Wasm.OpcodeInfo.OpcodeArgType.Node) {
+          // opcode argument record: [Node, numNodes]
 
-        var immediate = decodeImmediate(reader, sizeBytes, isFloat);
+          // Any node with child nodes fires an onBeginOpcode first
+          if (!hasFiredBegin) {
+            hasFiredBegin = true;
+            handler.onBeginOpcode(opcode, stack);          
+          }
 
-        if (immediates == null)
-          immediates = [];
-        immediates.push(immediate);
+          var childNodeCount = arg[1];
+          stack.push(opcode);
+
+          for (var j = 0; j < childNodeCount; j++)
+            result += decodeNode(reader, handler, stack);
+
+          if (stack.pop() !== opcode)
+            throw new Error("Decode stack misalignment");
+          childNodesDecoded += childNodeCount;
+        } else {
+          // opcode argument record: [Int | Float, sizeBytes]
+
+          var isFloat = argType === Wasm.OpcodeInfo.OpcodeArgType.Float;
+          var sizeBytes = arg[1];
+
+          var immediate = decodeImmediate(reader, sizeBytes, isFloat);
+          immediates.push(immediate);
+        }
       }
     }
+
+    console.log("-opcode " + b + " w/" + childNodesDecoded + " child nodes");
 
     handler.onOpcode(opcode, childNodesDecoded, immediates || emptyArray, stack);
 

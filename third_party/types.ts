@@ -25,3 +25,6 @@ type charCode = number;
 type char = string;
 
 type WasmTypeId = number;
+
+type Immediate =
+ (number | Wasm.OpcodeInfo.Signature);

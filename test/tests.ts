@@ -26,7 +26,7 @@ QUnit.module("moduleDecoder");
 
 test("decodes empty module", function (assert) {
   var log = [];
-  var mh = makeMockHandler<ModuleDecoder.IDecodeHandler>(log);
+  var mh = makeLogHandler<ModuleDecoder.IDecodeHandler>(log);
   var reader = makeReader([]);
 
   var numSections = ModuleDecoder.decodeModule(reader, mh);
@@ -37,7 +37,7 @@ test("decodes empty module", function (assert) {
 
 test("decodes memory section", function (assert) {
   var log = [];
-  var mh = makeMockHandler<ModuleDecoder.IDecodeHandler>(log);
+  var mh = makeLogHandler<ModuleDecoder.IDecodeHandler>(log);
   var reader = makeReader([
     ModuleDecoder.Section.Memory,
     0x00, 0x00, 0x01
@@ -53,39 +53,38 @@ test("decodes memory section", function (assert) {
 
 test("decodes signature section", function (assert) {
   var log = [];
-  var mh = makeMockHandler<ModuleDecoder.IDecodeHandler>(log);
+  var mh = makeLogHandler<ModuleDecoder.IDecodeHandler>(log);
   var reader = makeReader([
     ModuleDecoder.Section.Signatures,
     0x02,
     0x00, 0x00,
-    0x01, 0x02
+    0x01, 0x02, 0x00
   ]);
 
   var numSections = ModuleDecoder.decodeModule(reader, mh);
 
   assert.equal(numSections, 1);
   assert.deepEqual(log, [
-    ["onSignature", [0, 0]],
-    ["onSignature", [1, 2]],
+    ["onSignature", [0, []]],
+    ["onSignature", [2, [0]]],
   ]);
 });
 
 test("decodes function section", function (assert) {
   var log = [];
-  var mh = makeMockHandler<ModuleDecoder.IDecodeHandler>(log);
+  var mh = makeLogHandler<ModuleDecoder.IDecodeHandler>(log);
   var reader = makeReader([
     ModuleDecoder.Section.Functions,
     0x02,
 
     0x00, // flags
     0x00, 0x00, // signature index
-    0x00, 0x00, 0x00, 0x00, // name offset
     0x00, 0x00, // body size
 
     0x01, 
-    0x02, 0x00,
-    0x03, 0x00, 0x00, 0x00,
-    0x04, 0x00,
+    0x02, 0x00, // signature index
+    0x03, 0x00, 0x00, 0x00, // name offset
+    0x04, 0x00, // body size
     0x00, 0x00, 0x00, 0x00, // body
 
     ModuleDecoder.Section.End
@@ -95,8 +94,8 @@ test("decodes function section", function (assert) {
 
   assert.equal(numSections, 2);
   assert.deepEqual(log, [
-    ["onFunction", [0, 0, 0, 11, 0]],
-    ["onFunction", [1, 2, 3, 20, 4]],
+    ["onFunction", [0, 0, undefined, 7, 0]],
+    ["onFunction", [1, 2, 3, 16, 4]],
     ["onEndOfModule", []]
   ]);
 });
@@ -107,7 +106,7 @@ QUnit.module("astDecoder");
 
 test("decodes empty body", function (assert) {
   var log = [];
-  var mh = makeMockHandler<AstDecoder.IDecodeHandler>(log);
+  var mh = makeLogHandler<AstDecoder.IDecodeHandler>(log);
   var reader = makeReader([]);
 
   var numOpcodes = AstDecoder.decodeFunctionBody(reader, mh);
@@ -118,7 +117,7 @@ test("decodes empty body", function (assert) {
 
 test("decodes argumentless opcodes", function (assert) {
   var log = [];
-  var mh = makeMockHandler<AstDecoder.IDecodeHandler>(log);
+  var mh = makeLogHandler<AstDecoder.IDecodeHandler>(log);
   var reader = makeReader([
     Wasm.ControlOpcode.Nop,
     Wasm.ControlOpcode.Unreachable,
@@ -137,7 +136,7 @@ test("decodes argumentless opcodes", function (assert) {
 
 test("immediate decoder", function (assert) {
   var log = [];
-  var mh = makeMockHandler<AstDecoder.IDecodeHandler>(log);
+  var mh = makeLogHandler<AstDecoder.IDecodeHandler>(log);
   var reader = makeReader([
     // Wasm.ConstantOpcode.I8Const,
     0x02,    
@@ -171,7 +170,7 @@ test("immediate decoder", function (assert) {
 
 test("decodes constant opcodes", function (assert) {
   var log = [];
-  var mh = makeMockHandler<AstDecoder.IDecodeHandler>(log);
+  var mh = makeLogHandler<AstDecoder.IDecodeHandler>(log);
   var reader = makeReader([
     Wasm.ConstantOpcode.I8Const,
     0x02,    
@@ -200,7 +199,7 @@ test("decodes constant opcodes", function (assert) {
 
 test("decodes simple nested arithmetic", function (assert) {
   var log = [];
-  var mh = makeMockHandler<AstDecoder.IDecodeHandler>(log);
+  var mh = makeLogHandler<AstDecoder.IDecodeHandler>(log);
   var reader = makeReader([
     Wasm.SimpleOpcode.I32Add,
     Wasm.ConstantOpcode.I8Const,
@@ -220,132 +219,11 @@ test("decodes simple nested arithmetic", function (assert) {
   ]);
 });
 
-class _Node {
-  name: string;
-  args: any[];
-  _assert: any;
-
-  public constructor (assert, name: string) {
-    this._assert = assert;
-    this.name = name;
-    this.args = [];
-  }
-
-  toString () : string {
-    var result = "(" + this.name;
-
-    for (var i = 0, l = this.args.length; i < l; i++) {
-      var child = this.args[i].toString();
-
-      if ((this.args.length === 1) && (child.indexOf("(") < 0)) {
-        result += " " + child;
-        break;
-      } else if (i === 0) {
-        result += "\n";
-      }
-
-      var childLines = child.split("\n");
-      for (var j = 0, l2 = childLines.length; j < l2; j++) {
-        result += "  " + childLines[j] + "\n";
-      }
-    }
-
-    result += ")";
-    return result;
-  }
-
-  assertIs (name: string) {
-    this._assert.equal(this.name, name);
-  }
-
-  assertTree (names: (string | any[])[]) {
-    this._assert.equal(this.name, names[0]);
-
-    var node = this;
-    var nodeName = this.name;
-    var parent = null;
-
-    for (var i = 1, l = names.length; i < l; i++) {
-      var nameOrArray = names[i];
-      var next = null;
-
-      if (typeof (nameOrArray) === "string") {
-        var childName = <string>nameOrArray;
-        for (var j = 0, l2 = node.args.length; j < l2; j++) {
-          var child = node.args[j];
-          if (child.name === childName)
-            next = child;
-          break;
-        }
-
-        this._assert.ok(next, "expected '" + nodeName + "' to have a child '" + childName + "'");
-
-        if (next) {
-          parent = node;
-          node = next;
-          nodeName = node.name;
-        } else {
-          return false;
-        }
-      } else {
-        var array = <any[]>nameOrArray;
-        this._assert.equal(node.args.length, array.length, "expected '" + nodeName + "' to have n children");
-
-        for (var j = 0, l2 = array.length; j < l2; j++) {
-          var child = node.args[j];
-
-          if (child && child.assertTree)
-            child.assertTree(array[j]);
-          else
-            this._assert.equal(child, array[j], "expected '" + nodeName + "' to have child '" + array[j] + "'");
-        }
-
-        return true;
-      }
-    }
-
-    if (node.args.length !== 0)
-      this._assert.ok(false, "expected '" + nodeName + "' to have no children");
-  }
-};
-
 test("decodes convert.txt", function (assert) {
-  var stream = [];
-
-  var handler = {
-    onBeginOpcode: function (opcode, _) {
-    },
-    onOpcode: function (opcode, childNodesDecoded, immediates, _) {
-      var name = Wasm.OpcodeInfo.getName(opcode);
-      var node = new _Node(assert, name);
-
-      if (childNodesDecoded) {
-        var childNodes = stream.slice(-childNodesDecoded);
-        if (childNodes.length !== childNodesDecoded)
-          throw new Error("Didn't find my children :-((((");
-
-        stream.splice(-childNodesDecoded, childNodesDecoded);
-
-        node.args.push.apply(node.args, childNodes);
-      }
-
-      node.args.push.apply(node.args, immediates);
-
-      stream.push(node);
-    }
-  };
+  var handler = new MockAstHandler(assert);
+  var stream = handler.stream;
 
   var opcodes = Wasm.Opcodes;
-
-/*
-0000027: a6                                         ; OPCODE_I64_SCONVERT_I32
-0000028: 09                                         ; OPCODE_I8_CONST
-0000029: 00                                         ; u8 literal
-000002a: ac                                         ; OPCODE_F32_CONVERT_F64
-000002b: b2                                         ; OPCODE_F64_CONVERT_F32
-000002c: 0d                                         ; OPCODE_F32_CONST
-*/
-
   var reader = makeReader([
     opcodes.I32ConvertI64, opcodes.I64UConvertI32,
     opcodes.I32SConvertF32, opcodes.F32SConvertI32,
@@ -385,6 +263,50 @@ test("decodes convert.txt", function (assert) {
   stream[2].assertTree(
     ["F32ConvertF64", "F64ConvertF32",
       "F32Const", [0]
+    ]
+  );
+});
+
+test("decodes call.txt", function (assert) {
+  var moduleHandler = new MockModuleHandler(assert);
+  var handler = moduleHandler.astHandler;
+  var stream = handler.stream;
+
+  var opcodes = Wasm.Opcodes;
+  var reader = makeReader([
+    ModuleDecoder.Section.Signatures,
+    0x01,
+
+    0x01,
+    0x00,
+    0x01,
+
+    ModuleDecoder.Section.Functions,
+    0x01,
+
+    0x00,
+    0x00, 0x00,
+    0x04, 0x00,
+
+    opcodes.CallFunction,
+    0x00,
+    opcodes.I8Const,
+    0x09,
+
+    ModuleDecoder.Section.End
+  ]);
+
+  assert.equal(ModuleDecoder.decodeModule(reader, moduleHandler), 3);
+  console.log(stream.toString());
+
+  stream[0].assertTree(
+    ["CallFunction",
+      [
+        // arg0
+        ["I8Const", [9]],
+        // signature index
+        [0]
+      ]
     ]
   );
 });

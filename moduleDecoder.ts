@@ -22,7 +22,8 @@
 module ModuleDecoder {
   export interface IDecodeHandler {
     onMemory (minSizeLog2: uint32, maxSizeLog2: uint32, externallyVisible: boolean);
-    onSignature (numArguments: uint32, resultType: WasmTypeId);
+    // Array is reused, so make a copy if you want to retain it
+    onSignature (resultType: WasmTypeId, argumentTypes: WasmTypeId[]);
     // Return an AST decode handler to read the function body; otherwise it'll be skipped
     onFunction (
       flags: byte, signatureIndex: uint32, nameOffset: uint32, 
@@ -52,9 +53,15 @@ module ModuleDecoder {
       eof(reader.position);
 
     for (var i = 0; i < count; i++) {
+      var nameOffset;
+
       var flags = reader.readByte();
       var signatureIndex = reader.readUint16();
-      var nameOffset = reader.readUint32();
+
+      // HACK
+      if (flags)
+        nameOffset = reader.readUint32();
+
       var bodySize = reader.readUint16();
       var bodyOffset = reader.position;
 
@@ -65,6 +72,7 @@ module ModuleDecoder {
         <byte>flags, <uint16>signatureIndex, <uint32>nameOffset, <uint32>bodyOffset, <uint32>bodySize
       );
 
+      console.log("body size " + bodySize + ", body offset " + bodyOffset);
       var body = reader.readSubstream(<uint32>bodySize);
 
       if (astDecodeHandler)
@@ -78,14 +86,23 @@ module ModuleDecoder {
     if (count === false)
       eof(reader.position);
 
+    var argumentTypes = [];
+
     for (var i = 0; i < count; i++) {
       var numArguments = reader.readByte();
+      if (numArguments === false)
+        eof(reader.position);
+
       var resultType = reader.readByte();
+
+      argumentTypes.length = <uint32>numArguments;
+      for (var i = 0; i < numArguments; i++)
+        argumentTypes[i] = reader.readByte()
 
       if (reader.hasOverread)
         eof(reader.position);
 
-      handler.onSignature(<int32>numArguments, <int32>resultType);
+      handler.onSignature(<int32>resultType, argumentTypes);
     }
   };
 

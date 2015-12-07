@@ -59,7 +59,7 @@ declare class Proxy {
   constructor (state: any, handler: any);
 }
 
-function makeMockHandler<T> (log, methods?: Object) : T {
+function makeLogHandler<T> (log, methods?: Object) : T {
   var handler = new MockHandlerProxyHandler(log, methods);
   var result = new Proxy({}, handler);
   return <T>result;
@@ -69,3 +69,163 @@ function makeReader (bytes: Array<byte>) {
   var buf = new Uint8Array(bytes);
   return new Stream.ValueReader(buf);
 }
+
+type MockSignature = [WasmTypeId, WasmTypeId[]];
+
+class MockModuleHandler implements ModuleDecoder.IDecodeHandler {
+  signatures: MockSignature[];
+  astHandler: MockAstHandler;
+  _assert: any;
+
+  constructor (assert) {
+    this.astHandler = new MockAstHandler(assert);
+    this.signatures = this.astHandler.signatures;
+    this._assert = assert;
+  }
+
+  onMemory (...args) {
+  }
+
+  onSignature (resultType, argumentTypes) {
+    var sig : MockSignature = [
+      resultType, argumentTypes.slice()
+    ];
+    this.signatures.push(sig);
+  }
+
+  onFunction (...args) {
+    return this.astHandler;
+  }
+
+  onEndOfModule () {
+  }
+}
+
+class MockAstHandler implements AstDecoder.IDecodeHandler {
+  signatures: MockSignature[];
+  stream: any[];
+  _assert: any;
+
+  constructor (assert) {
+    this.stream = [];
+    this.signatures = [];
+    this._assert = assert;
+  }
+
+  getFunctionSignatureByIndex (index, result) {
+    var signature = this.signatures[index];
+    result.numArguments = signature[1].length;
+    result.returnType = signature[0];
+  }
+
+  onBeginOpcode (opcode, _) {
+  }
+
+  onOpcode (opcode, childNodesDecoded, immediates, _) {
+    var name = Wasm.OpcodeInfo.getName(opcode);
+    var node = new _Node(this._assert, name);
+
+    if (childNodesDecoded) {
+      var childNodes = this.stream.slice(-childNodesDecoded);
+      if (childNodes.length !== childNodesDecoded)
+        throw new Error("Didn't find my children :-((((");
+
+      this.stream.splice(-childNodesDecoded, childNodesDecoded);
+
+      node.args.push.apply(node.args, childNodes);
+    }
+
+    node.args.push.apply(node.args, immediates);
+
+    this.stream.push(node);
+  }
+};
+
+class _Node {
+  name: string;
+  args: any[];
+  _assert: any;
+
+  public constructor (assert, name: string) {
+    this._assert = assert;
+    this.name = name;
+    this.args = [];
+  }
+
+  toString () : string {
+    var result = "(" + this.name;
+
+    for (var i = 0, l = this.args.length; i < l; i++) {
+      var child = this.args[i].toString();
+
+      if ((this.args.length === 1) && (child.indexOf("(") < 0)) {
+        result += " " + child;
+        break;
+      } else if (i === 0) {
+        result += "\n";
+      }
+
+      var childLines = child.split("\n");
+      for (var j = 0, l2 = childLines.length; j < l2; j++) {
+        result += "  " + childLines[j] + "\n";
+      }
+    }
+
+    result += ")";
+    return result;
+  }
+
+  assertIs (name: string) {
+    this._assert.equal(this.name, name);
+  }
+
+  assertTree (names: (string | any[])[]) {
+    this._assert.equal(this.name, names[0]);
+
+    var node = this;
+    var nodeName = this.name;
+    var parent = null;
+
+    for (var i = 1, l = names.length; i < l; i++) {
+      var nameOrArray = names[i];
+      var next = null;
+
+      if (typeof (nameOrArray) === "string") {
+        var childName = <string>nameOrArray;
+        for (var j = 0, l2 = node.args.length; j < l2; j++) {
+          var child = node.args[j];
+          if (child.name === childName)
+            next = child;
+          break;
+        }
+
+        this._assert.ok(next, "expected '" + nodeName + "' to have a child '" + childName + "'");
+
+        if (next) {
+          parent = node;
+          node = next;
+          nodeName = node.name;
+        } else {
+          return false;
+        }
+      } else {
+        var array = <any[]>nameOrArray;
+        this._assert.equal(node.args.length, array.length, "expected '" + nodeName + "' to have n children");
+
+        for (var j = 0, l2 = array.length; j < l2; j++) {
+          var child = node.args[j];
+
+          if (child && child.assertTree)
+            child.assertTree(array[j]);
+          else
+            this._assert.equal(child, array[j], "expected '" + nodeName + "' to have child '" + array[j] + "'");
+        }
+
+        return true;
+      }
+    }
+
+    if (node.args.length !== 0)
+      this._assert.ok(false, "expected '" + nodeName + "' to have no children");
+  }
+};

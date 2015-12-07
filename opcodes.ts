@@ -22,18 +22,25 @@ module Wasm.OpcodeInfo {
   export enum OpcodeArgType {
     Node,
     Integer,
-    Float
+    Float,
+    Special
   };
 
-  export type OpcodeArg = [OpcodeArgType, int32];
+  export enum SpecialArgType {
+    FunctionCall
+  };
+
+  export type OpcodeArg = [OpcodeArgType, int32] | SpecialArgType;
 
   export class Signature {
-    opcode : Wasm.Opcode;
-    arguments : OpcodeArg[];
+    opcode: Wasm.Opcode;
+    arguments: OpcodeArg[];
+    isSpecial: boolean;
 
-    public constructor (opcode: Wasm.Opcode, opcodeArguments: OpcodeArg[]) {
+    public constructor (opcode: Wasm.Opcode, opcodeArguments: OpcodeArg[], isSpecial?: boolean) {
       this.opcode = opcode;
       this.arguments = opcodeArguments;
+      this.isSpecial = isSpecial || false;
     }
   }
 
@@ -193,4 +200,10 @@ module Wasm.OpcodeInfo {
   defineSignature(Wasm.ConstantOpcode.I64Const, [OpcodeArgType.Integer, 8]);
   defineSignature(Wasm.ConstantOpcode.F32Const, [OpcodeArgType.Float, 4]);
   defineSignature(Wasm.ConstantOpcode.F64Const, [OpcodeArgType.Float, 8]);
+
+  defineSignature(
+    Wasm.MiscOpcode.CallFunction, 
+    // FIXME: Is this right?
+    SpecialArgType.FunctionCall
+  );
 }
