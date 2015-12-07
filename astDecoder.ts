@@ -59,27 +59,21 @@ module AstDecoder {
   };
 
   export function decodeImmediate (reader: Stream.ValueReader, immediateSizeBytes: uint32, floatingPoint: boolean) : any {
-    var _bytes = reader.readScratchBytes(immediateSizeBytes);
-    if (_bytes === false)
-      return false;
-
-    var bytes = <Uint8Array>_bytes;
-
     // FIXME: Slow
     if (floatingPoint) {
       if (immediateSizeBytes === 4)
-        return (new Float32Array(bytes.buffer, 0, 1))[0];
+        return reader.readFloat32();
       else if (immediateSizeBytes === 8)
-        return (new Float64Array(bytes.buffer, 0, 1))[0];
+        return reader.readFloat64();
       else
         throw new Error("Expected f32 or f64");
     } else {
       if (immediateSizeBytes === 1)
-        return bytes[0];
+        return reader.readByte();
       else if (immediateSizeBytes === 2)
-        return (new Int16Array(bytes.buffer, 0, 1))[0];      
+        return reader.readInt16();
       else if (immediateSizeBytes === 4)
-        return (new Int32Array(bytes.buffer, 0, 1))[0];        
+        return reader.readInt32();
       else if (immediateSizeBytes === 8)
         throw new Error("i64 not implemented");
     }

@@ -27,7 +27,9 @@ module Stream {
     scratchBytes: Uint8Array;
     scratchU16:   Uint16Array;
     scratchU32:   Uint32Array;
+    scratchI16:   Int16Array;
     scratchI32:   Int32Array;
+    scratchF32:   Float32Array;
     scratchF64:   Float64Array;
 
     constructor (bytes: Uint8Array, index?: uint32, count?: uint32) {
@@ -41,7 +43,9 @@ module Stream {
       this.scratchBytes  = new Uint8Array  (128);
       this.scratchU16    = new Uint16Array (this.scratchBytes.buffer);
       this.scratchU32    = new Uint32Array (this.scratchBytes.buffer);
+      this.scratchI16    = new Int16Array  (this.scratchBytes.buffer);
       this.scratchI32    = new Int32Array  (this.scratchBytes.buffer);
+      this.scratchF32    = new Float32Array(this.scratchBytes.buffer);
       this.scratchF64    = new Float64Array(this.scratchBytes.buffer);
     }
 
@@ -113,6 +117,13 @@ module Stream {
       return this.scratchU16[0];
     }
 
+    readInt16 () : (int16 | boolean) {
+      if (this.readScratchBytes(2) === false)
+        return false;
+
+      return this.scratchI16[0];
+    }
+
     readUint32 () : (uint32 | boolean) {
       if (this.readScratchBytes(4) === false)
         return false;
@@ -133,6 +144,13 @@ module Stream {
 
     readVarInt32 () : (int32 | boolean) {
       return LEB.readInt32(this.byteReader);
+    };
+
+    readFloat32 () : (float32 | boolean) {
+      if (this.readScratchBytes(4) === false)
+        return false;
+
+      return this.scratchF32[0];
     };
 
     readFloat64 () : (float64 | boolean) {
