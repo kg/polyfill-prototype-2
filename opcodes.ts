@@ -168,6 +168,36 @@ module Wasm.OpcodeInfo {
 
   defineSignatures(
     [
+      Wasm.SimpleOpcode.F32Add,
+      Wasm.SimpleOpcode.F32Sub,
+      Wasm.SimpleOpcode.F32Mul,
+      Wasm.SimpleOpcode.F32Div,
+      Wasm.SimpleOpcode.F32Eq,
+      Wasm.SimpleOpcode.F32Ne,
+      Wasm.SimpleOpcode.F32Lt, 
+      Wasm.SimpleOpcode.F32Le,
+      Wasm.SimpleOpcode.F32Gt, 
+      Wasm.SimpleOpcode.F32Ge, 
+    ], _nn
+  );
+
+  defineSignatures(
+    [
+      Wasm.SimpleOpcode.F64Add,
+      Wasm.SimpleOpcode.F64Sub,
+      Wasm.SimpleOpcode.F64Mul,
+      Wasm.SimpleOpcode.F64Div,
+      Wasm.SimpleOpcode.F64Eq,
+      Wasm.SimpleOpcode.F64Ne,
+      Wasm.SimpleOpcode.F64Lt, 
+      Wasm.SimpleOpcode.F64Le,
+      Wasm.SimpleOpcode.F64Gt, 
+      Wasm.SimpleOpcode.F64Ge, 
+    ], _nn
+  );
+
+  defineSignatures(
+    [
       Wasm.SimpleOpcode.I32SConvertF32,
       Wasm.SimpleOpcode.I32SConvertF64,
       Wasm.SimpleOpcode.I32UConvertF32,

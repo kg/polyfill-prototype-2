@@ -59,7 +59,6 @@ module AstDecoder {
   };
 
   export function decodeImmediate (reader: Stream.ValueReader, immediateSizeBytes: uint32, floatingPoint: boolean) : any {
-    // FIXME: Slow
     if (floatingPoint) {
       if (immediateSizeBytes === 4)
         return reader.readFloat32();
@@ -74,10 +73,17 @@ module AstDecoder {
         return reader.readInt16();
       else if (immediateSizeBytes === 4)
         return reader.readInt32();
-      else if (immediateSizeBytes === 8)
-        throw new Error("i64 not implemented");
+      else if (immediateSizeBytes === 8) {
+        // FIXME
+        console.log("i64 not implemented; skipping 4 high-order bytes");
+        reader.skip(4);
+        return reader.readInt32();
+      }
     }
   };
+
+  // HACK
+  var decodeDepth = 0;
 
   const emptyArray = [];
 
@@ -139,7 +145,14 @@ module AstDecoder {
 
     var result = 1;
     var opcode = <Wasm.Opcode>b;
-    console.log("+opcode " + b + "(" + Wasm.OpcodeInfo.getName(opcode) + ")");
+    decodeDepth += 1;
+
+    var indent = "";
+    for (var i = 0; i < decodeDepth; i++)
+      indent += " ";
+    reader
+
+    console.log(indent + "opcode@" + reader.position + " = " + b + "(" + Wasm.OpcodeInfo.getName(opcode) + ")");
     var signature = Wasm.OpcodeInfo.getSignature(opcode);
     var childNodesDecoded = 0;
 
@@ -186,7 +199,7 @@ module AstDecoder {
       }
     }
 
-    console.log("-opcode " + b + " w/" + childNodesDecoded + " child nodes");
+    decodeDepth -= 1;
 
     handler.onOpcode(opcode, childNodesDecoded, immediates || emptyArray, stack);
 

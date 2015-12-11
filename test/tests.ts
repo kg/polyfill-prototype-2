@@ -219,6 +219,14 @@ test("decodes simple nested arithmetic", function (assert) {
   ]);
 });
 
+function opcode (name : string) : number {
+  var opcode = Wasm.Opcodes[name];
+  if (typeof (opcode) !== "number")
+    throw new Error("No opcode named " + name);
+
+  return opcode;
+};
+
 test("decodes convert.txt", function (assert) {
   console.log("// convert.txt");
 
@@ -227,20 +235,20 @@ test("decodes convert.txt", function (assert) {
 
   var opcodes = Wasm.Opcodes;
   var reader = makeReader([
-    opcodes.I32ConvertI64, opcodes.I64UConvertI32,
-    opcodes.I32SConvertF32, opcodes.F32SConvertI32,
-    opcodes.I32UConvertF32, opcodes.F32UConvertI32,
-    opcodes.I32SConvertF64, opcodes.F64SConvertI32,
-    opcodes.I32UConvertF64, opcodes.F64UConvertI32,
-    opcodes.I8Const, 0x00,
-    opcodes.I64SConvertF32, opcodes.F32SConvertI64,
-    opcodes.I64UConvertF32, opcodes.F32UConvertI64,
-    opcodes.I64SConvertF64, opcodes.F64SConvertI64,
-    opcodes.I64UConvertF64, opcodes.F64UConvertI64,
-    opcodes.I64SConvertI32,
-    opcodes.I8Const, 0x00,
-    opcodes.F32ConvertF64, opcodes.F64ConvertF32,
-    opcodes.F32Const, 0x00, 0x00, 0x00, 0x00
+    opcode("I32ConvertI64"), opcode("I64UConvertI32"),
+    opcode("I32SConvertF32"), opcode("F32SConvertI32"),
+    opcode("I32UConvertF32"), opcode("F32UConvertI32"),
+    opcode("I32SConvertF64"), opcode("F64SConvertI32"),
+    opcode("I32UConvertF64"), opcode("F64UConvertI32"),
+    opcode("I8Const"), 0x00,
+    opcode("I64SConvertF32"), opcode("F32SConvertI64"),
+    opcode("I64UConvertF32"), opcode("F32UConvertI64"),
+    opcode("I64SConvertF64"), opcode("F64SConvertI64"),
+    opcode("I64UConvertF64"), opcode("F64UConvertI64"),
+    opcode("I64SConvertI32"),
+    opcode("I8Const"), 0x00,
+    opcode("F32ConvertF64"), opcode("F64ConvertF32"),
+    opcode("F32Const"), 0x00, 0x00, 0x00, 0x00
   ]);
 
   var numOpcodes = AstDecoder.decodeFunctionBody(reader, handler);
@@ -292,9 +300,9 @@ test("decodes call.txt", function (assert) {
     0x00, 0x00,
     0x04, 0x00,
 
-    opcodes.CallFunction,
+    opcode("CallFunction"),
     0x00,
-    opcodes.I8Const,
+    opcode("I8Const"),
     0x09,
 
     ModuleDecoder.Section.End
@@ -340,20 +348,213 @@ test("decodes block.txt", function (assert) {
     0x00, 0x00,
     0x05, 0x00,
 
-    opcodes.Block,
+    opcode("Block"),
     0x03,
-    opcodes.Nop,
-    opcodes.Nop,
-    opcodes.Nop,
+    opcode("Nop"),
+    opcode("Nop"),
+    opcode("Nop"),
 
     0x00,
     0x01, 0x00,
     0x04, 0x00,
 
-    opcodes.Block,
+    opcode("Block"),
     0x01,
-    opcodes.I8Const,
+    opcode("I8Const"),
     0x01,
+
+    ModuleDecoder.Section.End
+  ]);
+
+  assert.equal(ModuleDecoder.decodeModule(reader, moduleHandler), 3);
+  console.log(stream.toString());
+
+  stream[0].assertTree(
+    ["Block",
+      [
+        ["Nop"],
+        ["Nop"],
+        ["Nop"]
+      ]
+    ]
+  );
+
+  stream[1].assertTree(
+    ["Block",
+      [
+        ["I8Const", [1]],
+      ]
+    ]
+  );
+});
+
+test("decodes compare.txt", function (assert) {
+  console.log("// compare.txt");
+
+  var moduleHandler = new MockModuleHandler(assert);
+  var handler = moduleHandler.astHandler;
+  var stream = handler.stream;
+
+  var opcodes = Wasm.Opcodes;
+  var reader = makeReader([
+    ModuleDecoder.Section.Signatures,
+    0x01,
+
+    0x00,
+    0x00,
+
+    ModuleDecoder.Section.Functions,
+    0x01,
+
+    0x01,
+    0x00, 0x00,
+
+    0x00, 0x00, 0x00, 0x00,
+    0x92, 0x01,
+
+    opcode("I32Eq"),
+    opcode("I32Ne"),
+    opcode("I32LtS"),
+    opcode("I32LtU"),
+    opcode("I32LeS"),
+    opcode("I32LeU"),
+    opcode("I32GtS"),
+    opcode("I32GtU"),
+    opcode("I32GeS"),
+    opcode("I32GeU"),
+    opcode("I8Const"),
+    0x00,
+    opcode("I8Const"),
+    0x00,
+    opcode("I8Const"),
+    0x00,
+    opcode("I8Const"),
+    0x00,
+    opcode("I8Const"),
+    0x00,
+    opcode("I8Const"),
+    0x00,
+    opcode("I8Const"),
+    0x00,
+    opcode("I8Const"),
+    0x00,
+    opcode("I8Const"),
+    0x00,
+    opcode("I8Const"),
+    0x00,
+
+    opcode("I64Eq"),
+    opcode("I64Const"),
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    opcode("I64Const"),
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    opcode("I64Ne"),
+    opcode("I64Const"),
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    opcode("I64Const"),
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    opcode("I64LtS"),
+    opcode("I64Const"),
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    opcode("I64Const"),
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    opcode("I64LtU"),
+    opcode("I64Const"),
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    opcode("I64Const"),
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    opcode("I64LeS"),
+    opcode("I64Const"),
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    opcode("I64Const"),
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    opcode("I64LeU"),
+    opcode("I64Const"),
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    opcode("I64Const"),
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    opcode("I64GtS"),
+    opcode("I64Const"),
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    opcode("I64Const"),
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    opcode("I64GtU"),
+    opcode("I64Const"),
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    opcode("I64Const"),
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    opcode("I64GeS"),
+    opcode("I64Const"),
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    opcode("I64Const"),
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    opcode("I64GeU"),
+    opcode("I64Const"),
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    opcode("I64Const"),
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    
+    opcode("F32Eq"),
+    opcode("F32Const"),
+    0x00, 0x00, 0x00, 0x00,
+    opcode("F32Const"),
+    0x00, 0x00, 0x00, 0x00,
+    opcode("F32Ne"),
+    opcode("F32Const"),
+    0x00, 0x00, 0x00, 0x00,
+    opcode("F32Const"),
+    0x00, 0x00, 0x00, 0x00,
+    opcode("F32Lt"),
+    opcode("F32Const"),
+    0x00, 0x00, 0x00, 0x00,
+    opcode("F32Const"),
+    0x00, 0x00, 0x00, 0x00,
+    opcode("F32Le"),
+    opcode("F32Const"),
+    0x00, 0x00, 0x00, 0x00,
+    opcode("F32Const"),
+    0x00, 0x00, 0x00, 0x00,
+    opcode("F32Gt"),
+    opcode("F32Const"),
+    0x00, 0x00, 0x00, 0x00,
+    opcode("F32Const"),
+    0x00, 0x00, 0x00, 0x00,
+    opcode("F32Ge"),
+    opcode("F32Const"),
+    0x00, 0x00, 0x00, 0x00,
+    opcode("F32Const"),
+    0x00, 0x00, 0x00, 0x00,
+    
+    opcode("F64Eq"),
+    opcode("F64Const"),
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    opcode("F64Const"),
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    opcode("F64Ne"),
+    opcode("F64Const"),
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    opcode("F64Const"),
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    opcode("F64Lt"),
+    opcode("F64Const"),
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    opcode("F64Const"),
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    opcode("F64Le"),
+    opcode("F64Const"),
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    opcode("F64Const"),
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    opcode("F64Gt"),
+    opcode("F32Const"),
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    opcode("F64Const"),
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    opcode("F64Ge"),
+    opcode("F64Const"),
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    opcode("F64Const"),
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 
     ModuleDecoder.Section.End
   ]);
