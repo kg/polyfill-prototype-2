@@ -83,7 +83,7 @@ module AstDecoder {
   };
 
   // HACK
-  var decodeDepth = 0;
+  var decodeDepth = 1;
 
   const emptyArray = [];
 
@@ -145,21 +145,24 @@ module AstDecoder {
 
     var result = 1;
     var opcode = <Wasm.Opcode>b;
-    decodeDepth += 1;
 
     var indent = "";
     for (var i = 0; i < decodeDepth; i++)
       indent += " ";
-    reader
 
-    console.log(indent + "opcode@" + reader.position + "/" + (reader.startOffset + reader.length) + " = " + b + "(" + Wasm.OpcodeInfo.getName(opcode) + ")");
+    console.log(
+      indent + "opcode@" + 
+      (reader.startOffset + reader.position) + "/" + 
+      (reader.startOffset + reader.length) + " = 0x" + 
+      b.toString(16) + "(" + Wasm.OpcodeInfo.getName(opcode) + ")"
+    );
     var signature = Wasm.OpcodeInfo.getSignature(opcode);
     var childNodesDecoded = 0;
-
+    var hasFiredBegin = false;
     // FIXME: Reuse
     var immediates = [];
 
-    var hasFiredBegin = false;
+    decodeDepth += 1;
 
     for (var i = 0, l = signature.arguments.length; i < l; i++) {
       var arg = signature.arguments[i];
@@ -210,9 +213,23 @@ module AstDecoder {
   export function decodeFunctionBody (reader: Stream.ValueReader, handler: IDecodeHandler) : int32 {
     var numOpcodesRead = 0, b;
     var stack = [];
+    var ok = false;
 
-    while (!reader.eof && !reader.hasOverread)
-      numOpcodesRead += decodeNode(reader, handler, stack);
+    console.log("decode function body of length " + reader.length);
+
+    try {
+      while (!reader.eof && !reader.hasOverread) {
+        numOpcodesRead += decodeNode(reader, handler, stack);
+      }
+
+      ok = true;
+    } finally {
+      if (!ok)
+        console.log(
+          "error at opcode #" + numOpcodesRead + 
+          ", byte offset #" + (reader.startOffset + reader.position)
+        );
+    }
 
     return numOpcodesRead;
   };

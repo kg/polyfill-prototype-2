@@ -228,30 +228,17 @@ function opcode (name : string) : number {
 };
 
 test("decodes convert.txt", function (assert) {
-  console.log("// convert.txt");
+  var fileBytes = readV8Dump("third_party/sexpr-wasm-prototype/test/dump/convert.txt");
 
-  var handler = new MockAstHandler(assert);
+  var moduleHandler = new MockModuleHandler(assert);
+  var handler = moduleHandler.astHandler;
   var stream = handler.stream;
 
   var opcodes = Wasm.Opcodes;
-  var reader = makeReader([
-    opcode("I32ConvertI64"), opcode("I64UConvertI32"),
-    opcode("I32SConvertF32"), opcode("F32SConvertI32"),
-    opcode("I32UConvertF32"), opcode("F32UConvertI32"),
-    opcode("I32SConvertF64"), opcode("F64SConvertI32"),
-    opcode("I32UConvertF64"), opcode("F64UConvertI32"),
-    opcode("I8Const"), 0x00,
-    opcode("I64SConvertF32"), opcode("F32SConvertI64"),
-    opcode("I64UConvertF32"), opcode("F32UConvertI64"),
-    opcode("I64SConvertF64"), opcode("F64SConvertI64"),
-    opcode("I64UConvertF64"), opcode("F64UConvertI64"),
-    opcode("I64SConvertI32"),
-    opcode("I8Const"), 0x00,
-    opcode("F32ConvertF64"), opcode("F64ConvertF32"),
-    opcode("F32Const"), 0x00, 0x00, 0x00, 0x00
-  ]);
+  var reader = makeReader(fileBytes);
 
-  var numOpcodes = AstDecoder.decodeFunctionBody(reader, handler);
+  assert.equal(ModuleDecoder.decodeModule(reader, moduleHandler), 3);
+  console.log(stream.toString());
 
   stream[0].assertTree(
     ["I32ConvertI64", "I64UConvertI32", "I32SConvertF32",
@@ -278,35 +265,14 @@ test("decodes convert.txt", function (assert) {
 });
 
 test("decodes call.txt", function (assert) {
-  console.log("// call.txt");
+  var fileBytes = readV8Dump("third_party/sexpr-wasm-prototype/test/dump/call.txt");
 
   var moduleHandler = new MockModuleHandler(assert);
   var handler = moduleHandler.astHandler;
   var stream = handler.stream;
 
   var opcodes = Wasm.Opcodes;
-  var reader = makeReader([
-    ModuleDecoder.Section.Signatures,
-    0x01,
-
-    0x01,
-    0x00,
-    0x01,
-
-    ModuleDecoder.Section.Functions,
-    0x01,
-
-    0x00,
-    0x00, 0x00,
-    0x04, 0x00,
-
-    opcode("CallFunction"),
-    0x00,
-    opcode("I8Const"),
-    0x09,
-
-    ModuleDecoder.Section.End
-  ]);
+  var reader = makeReader(fileBytes);
 
   assert.equal(ModuleDecoder.decodeModule(reader, moduleHandler), 3);
   console.log(stream.toString());
@@ -315,7 +281,7 @@ test("decodes call.txt", function (assert) {
     ["CallFunction",
       [
         // arg0
-        ["I8Const", [9]],
+        ["I8Const", [1]],
         // signature index
         [0]
       ]
@@ -324,47 +290,14 @@ test("decodes call.txt", function (assert) {
 });
 
 test("decodes block.txt", function (assert) {
-  console.log("// block.txt");
+  var fileBytes = readV8Dump("third_party/sexpr-wasm-prototype/test/dump/block.txt");
 
   var moduleHandler = new MockModuleHandler(assert);
   var handler = moduleHandler.astHandler;
   var stream = handler.stream;
 
   var opcodes = Wasm.Opcodes;
-  var reader = makeReader([
-    ModuleDecoder.Section.Signatures,
-    0x02,
-
-    0x00,
-    0x00,
-
-    0x00,
-    0x01,
-
-    ModuleDecoder.Section.Functions,
-    0x02,
-
-    0x00,
-    0x00, 0x00,
-    0x05, 0x00,
-
-    opcode("Block"),
-    0x03,
-    opcode("Nop"),
-    opcode("Nop"),
-    opcode("Nop"),
-
-    0x00,
-    0x01, 0x00,
-    0x04, 0x00,
-
-    opcode("Block"),
-    0x01,
-    opcode("I8Const"),
-    0x01,
-
-    ModuleDecoder.Section.End
-  ]);
+  var reader = makeReader(fileBytes);
 
   assert.equal(ModuleDecoder.decodeModule(reader, moduleHandler), 3);
   console.log(stream.toString());

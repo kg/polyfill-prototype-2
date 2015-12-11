@@ -15,6 +15,8 @@
    limitations under the License.
 */
 
+///<reference path="../moduleDecoder.ts"/>
+///<reference path="../astDecoder.ts"/>
 ///<reference path="../third_party/stream.ts"/>
 
 type CallRecord = [string, any[]];
@@ -65,9 +67,76 @@ function makeLogHandler<T> (log, methods?: Object) : T {
   return <T>result;
 };
 
-function makeReader (bytes: Array<byte>) {
-  var buf = new Uint8Array(bytes);
-  return new Stream.ValueReader(buf);
+function makeReader (bytes: Array<byte> | Uint8Array) {
+  if (bytes instanceof Uint8Array) {
+    return new Stream.ValueReader(bytes);
+  } else {
+    var buf = new Uint8Array(bytes);
+    return new Stream.ValueReader(buf);
+  }
+}
+
+function readText (relativeUrl: string) {
+  var xhr = new XMLHttpRequest();
+
+  xhr.open("GET", relativeUrl, false);
+  xhr.send();
+  var text = xhr.responseText;
+
+  return text;
+}
+
+function readV8Dump (relativeUrl: string) {
+  var text = readText(relativeUrl);
+  console.log("read " + text.length + " char(s) from " + relativeUrl);
+
+  var lines = text.split(/\r\n|\n/g);
+
+  var foundHeader = false;
+
+  var commentRe = /;.*/g;
+  var lineRe = /([0-9a-zA-Z]+):( *)([0-9a-zA-Z ]+)/;
+  var spaceRe = / /g;
+
+  var result = [];
+
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i].trim();
+
+    if (line === "(;; STDOUT ;;;") {
+      foundHeader = true;
+      continue;
+    } else if (!foundHeader)
+      continue;
+
+    var lineClean = line.replace(commentRe, "").trim();
+
+    if (!lineClean.length)
+      continue;
+
+    var matches = lineRe.exec(lineClean);
+
+    var offset = parseInt(matches[1], 16);
+    var bytes = matches[3].replace(spaceRe, "");
+
+    if (offset === result.length) {
+      // Append
+      for (var j = 0; j < bytes.length; j += 2) {
+        var byte = parseInt(bytes.substr(j, 2), 16);
+
+        result.push(byte);
+      }
+    } else {
+      // Fixup
+      for (var j = 0; j < bytes.length; j += 2) {
+        var byte = parseInt(bytes.substr(j, 2), 16);
+
+        result[offset + (j / 2)] = byte;
+      }
+    }
+  }
+
+  return new Uint8Array(result);
 }
 
 type MockSignature = [WasmTypeId, WasmTypeId[]];
@@ -212,7 +281,7 @@ class _Node {
         }
       } else {
         var array = <any[]>nameOrArray;
-        this._assert.equal(node.args.length, array.length, "expected '" + nodeName + "' to have n children");
+        this._assert.equal(node.args.length, array.length, "expected '" + nodeName + "' to have " + array.length + " child(ren)");
 
         for (var j = 0, l2 = array.length; j < l2; j++) {
           var child = node.args[j];
@@ -220,7 +289,7 @@ class _Node {
           if (child && child.assertTree)
             child.assertTree(array[j]);
           else
-            this._assert.equal(child, array[j], "expected '" + nodeName + "' to have child '" + array[j] + "'");
+            this._assert.equal(child, array[j], "expected '" + nodeName + "' to have child #" + j + " with value '" + array[j] + "'");
         }
 
         return true;
