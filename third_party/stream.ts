@@ -23,6 +23,8 @@ module Stream {
   export class ValueReader {
     bytes: Uint8Array;
     byteReader: Encoding.IElementReader;
+    startOffset: uint32;
+    length: uint32;
 
     scratchBytes: Uint8Array;
     scratchU16:   Uint16Array;
@@ -39,6 +41,8 @@ module Stream {
         count = bytes.length;
 
       this.bytes         = bytes;
+      this.startOffset   = index;
+      this.length        = count;
       this.byteReader    = Encoding.makeByteReader(bytes, index, count);
       this.scratchBytes  = new Uint8Array  (128);
       this.scratchU16    = new Uint16Array (this.scratchBytes.buffer);

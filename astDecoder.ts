@@ -152,7 +152,7 @@ module AstDecoder {
       indent += " ";
     reader
 
-    console.log(indent + "opcode@" + reader.position + " = " + b + "(" + Wasm.OpcodeInfo.getName(opcode) + ")");
+    console.log(indent + "opcode@" + reader.position + "/" + (reader.startOffset + reader.length) + " = " + b + "(" + Wasm.OpcodeInfo.getName(opcode) + ")");
     var signature = Wasm.OpcodeInfo.getSignature(opcode);
     var childNodesDecoded = 0;
 
