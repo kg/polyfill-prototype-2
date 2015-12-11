@@ -322,180 +322,39 @@ test("decodes block.txt", function (assert) {
 });
 
 test("decodes compare.txt", function (assert) {
-  console.log("// compare.txt");
+  var fileBytes = readV8Dump("third_party/sexpr-wasm-prototype/test/dump/compare.txt");
 
   var moduleHandler = new MockModuleHandler(assert);
   var handler = moduleHandler.astHandler;
   var stream = handler.stream;
 
   var opcodes = Wasm.Opcodes;
-  var reader = makeReader([
-    ModuleDecoder.Section.Signatures,
-    0x01,
-
-    0x00,
-    0x00,
-
-    ModuleDecoder.Section.Functions,
-    0x01,
-
-    0x01,
-    0x00, 0x00,
-
-    0x00, 0x00, 0x00, 0x00,
-    // FIXME: The length header from compare.txt is wrong?????????????
-    // 0x92, 0x01,
-    0x90, 0x01,
-
-    opcode("I32Eq"),
-    opcode("I32Ne"),
-    opcode("I32LtS"),
-    opcode("I32LtU"),
-    opcode("I32LeS"),
-    opcode("I32LeU"),
-    opcode("I32GtS"),
-    opcode("I32GtU"),
-    opcode("I32GeS"),
-    opcode("I32GeU"),
-    opcode("I8Const"),
-    0x00,
-    opcode("I8Const"),
-    0x00,
-    opcode("I8Const"),
-    0x00,
-    opcode("I8Const"),
-    0x00,
-    opcode("I8Const"),
-    0x00,
-    opcode("I8Const"),
-    0x00,
-    opcode("I8Const"),
-    0x00,
-    opcode("I8Const"),
-    0x00,
-    opcode("I8Const"),
-    0x00,
-    opcode("I8Const"),
-    0x00,
-
-    opcode("I64Eq"),
-    opcode("I64Const"),
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    opcode("I64Const"),
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    opcode("I64Ne"),
-    opcode("I64Const"),
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    opcode("I64Const"),
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    opcode("I64LtS"),
-    opcode("I64Const"),
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    opcode("I64Const"),
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    opcode("I64LtU"),
-    opcode("I64Const"),
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    opcode("I64Const"),
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    opcode("I64LeS"),
-    opcode("I64Const"),
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    opcode("I64Const"),
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    opcode("I64LeU"),
-    opcode("I64Const"),
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    opcode("I64Const"),
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    opcode("I64GtS"),
-    opcode("I64Const"),
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    opcode("I64Const"),
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    opcode("I64GtU"),
-    opcode("I64Const"),
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    opcode("I64Const"),
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    opcode("I64GeS"),
-    opcode("I64Const"),
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    opcode("I64Const"),
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    opcode("I64GeU"),
-    opcode("I64Const"),
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    opcode("I64Const"),
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    
-    opcode("F32Eq"),
-    opcode("F32Const"),
-    0x00, 0x00, 0x00, 0x00,
-    opcode("F32Const"),
-    0x00, 0x00, 0x00, 0x00,
-    opcode("F32Ne"),
-    opcode("F32Const"),
-    0x00, 0x00, 0x00, 0x00,
-    opcode("F32Const"),
-    0x00, 0x00, 0x00, 0x00,
-    opcode("F32Lt"),
-    opcode("F32Const"),
-    0x00, 0x00, 0x00, 0x00,
-    opcode("F32Const"),
-    0x00, 0x00, 0x00, 0x00,
-    opcode("F32Le"),
-    opcode("F32Const"),
-    0x00, 0x00, 0x00, 0x00,
-    opcode("F32Const"),
-    0x00, 0x00, 0x00, 0x00,
-    opcode("F32Gt"),
-    opcode("F32Const"),
-    0x00, 0x00, 0x00, 0x00,
-    opcode("F32Const"),
-    0x00, 0x00, 0x00, 0x00,
-    opcode("F32Ge"),
-    opcode("F32Const"),
-    0x00, 0x00, 0x00, 0x00,
-    opcode("F32Const"),
-    0x00, 0x00, 0x00, 0x00,
-    
-    opcode("F64Eq"),
-    opcode("F64Const"),
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    opcode("F64Const"),
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    opcode("F64Ne"),
-    opcode("F64Const"),
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    opcode("F64Const"),
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    opcode("F64Lt"),
-    opcode("F64Const"),
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    opcode("F64Const"),
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    opcode("F64Le"),
-    opcode("F64Const"),
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    opcode("F64Const"),
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    opcode("F64Gt"),
-    opcode("F64Const"),
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    opcode("F64Const"),
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    opcode("F64Ge"),
-    opcode("F64Const"),
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    opcode("F64Const"),
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-
-    ModuleDecoder.Section.End
-  ]);
+  var reader = makeReader(fileBytes);
 
   assert.equal(ModuleDecoder.decodeModule(reader, moduleHandler), 3);
-  console.log(stream.toString());
+
+  // HACK: gross
+  var stringified = stream.map((elt, index, arr) => {
+      return elt.toString(false);
+    }).join(", ");
+
+  const expectedText = "(I32Eq (I32Ne (I32LtS (I32LtU (I32LeS (I32LeU " +
+    "(I32GtS (I32GtU (I32GeS (I32GeU (I8Const 0) (I8Const 0) ) " + 
+    "(I8Const 0) ) (I8Const 0) ) (I8Const 0) ) (I8Const 0) ) (I8Const 0) ) " +
+    "(I8Const 0) ) (I8Const 0) ) (I8Const 0) ) (I8Const 0) ), " +
+    "(I64Eq (I64Const 0) (I64Const 0) ), (I64Ne (I64Const 0) (I64Const 0) ), " +
+    "(I64LtS (I64Const 0) (I64Const 0) ), (I64LtU (I64Const 0) (I64Const 0) ), " +
+    "(I64LeS (I64Const 0) (I64Const 0) ), (I64LeU (I64Const 0) (I64Const 0) ), " +
+    "(I64GtS (I64Const 0) (I64Const 0) ), (I64GtU (I64Const 0) (I64Const 0) ), " +
+    "(I64GeS (I64Const 0) (I64Const 0) ), (I64GeU (I64Const 0) (I64Const 0) ), " +
+    "(F32Eq (F32Const 0) (F32Const 0) ), (F32Ne (F32Const 0) (F32Const 0) ), " +
+    "(F32Lt (F32Const 0) (F32Const 0) ), (F32Le (F32Const 0) (F32Const 0) ), " +
+    "(F32Gt (F32Const 0) (F32Const 0) ), (F32Ge (F32Const 0) (F32Const 0) ), " +
+    "(F64Eq (F64Const 0) (F64Const 0) ), (F64Ne (F64Const 0) (F64Const 0) ), " +
+    "(F64Lt (F64Const 0) (F64Const 0) ), (F64Le (F64Const 0) (F64Const 0) ), " +
+    "(F64Gt (F64Const 0) (F64Const 0) ), (F64Ge (F64Const 0) (F64Const 0) )";
+
+  assert.equal(stringified, expectedText);
 
   // FIXME: Assert against decoded contents
 });

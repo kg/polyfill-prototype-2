@@ -223,22 +223,31 @@ class _Node {
     this.args = [];
   }
 
-  toString () : string {
+  toString (_pretty?: boolean) : string {
+    var pretty = _pretty !== false;
     var result = "(" + this.name;
 
+    var newLine = pretty ? "\n" : " ";
+    var indent = pretty ? "  " : "";
+
     for (var i = 0, l = this.args.length; i < l; i++) {
-      var child = this.args[i].toString();
+      var _child = this.args[i];
+      var child: string;
+      if (_child instanceof _Node)
+        child = _child.toString(_pretty);
+      else
+        child = _child.toString();
 
       if ((this.args.length === 1) && (child.indexOf("(") < 0)) {
         result += " " + child;
         break;
       } else if (i === 0) {
-        result += "\n";
+        result += newLine;
       }
 
       var childLines = child.split("\n");
       for (var j = 0, l2 = childLines.length; j < l2; j++) {
-        result += "  " + childLines[j] + "\n";
+        result += indent + childLines[j] + newLine;
       }
     }
 
