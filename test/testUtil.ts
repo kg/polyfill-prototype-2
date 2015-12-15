@@ -199,7 +199,9 @@ class MockAstHandler implements AstDecoder.IDecodeHandler {
     if (childNodesDecoded) {
       var childNodes = this.stream.slice(-childNodesDecoded);
       if (childNodes.length !== childNodesDecoded)
-        throw new Error("Didn't find my children :-((((");
+        throw new Error(
+          name + " (" + opcode + ") looked for " + childNodesDecoded + " children in the stream but found " + childNodes.length
+        );
 
       this.stream.splice(-childNodesDecoded, childNodesDecoded);
 

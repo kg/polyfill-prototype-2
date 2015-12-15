@@ -58,6 +58,15 @@ module AstDecoder {
     );
   };
 
+  const tracing = true;
+
+  function trace (...args) {
+    if (!tracing)
+      return;
+
+    console.log.apply(console, args);
+  }
+
   export function decodeImmediate (reader: Stream.ValueReader, immediateSizeBytes: uint32, floatingPoint: boolean) : any {
     if (floatingPoint) {
       if (immediateSizeBytes === 4)
@@ -75,7 +84,7 @@ module AstDecoder {
         return reader.readInt32();
       else if (immediateSizeBytes === 8) {
         // FIXME
-        console.log("i64 not implemented; skipping 4 high-order bytes");
+        trace("i64 not implemented; skipping 4 high-order bytes");
         reader.skip(4);
         return reader.readInt32();
       }
@@ -89,8 +98,7 @@ module AstDecoder {
 
   // TODO: Nonrecursive
   function decodeSpecial (reader: Stream.ValueReader, handler: IDecodeHandler, stack: Wasm.Opcode[], immediates, opcode: Wasm.Opcode, specialType: Wasm.OpcodeInfo.SpecialArgType) : int32 {    
-    var result = 0;
-    console.log("decode special " + specialType);
+    trace("decode special " + specialType);
 
     switch (specialType) {
       case Wasm.OpcodeInfo.SpecialArgType.FunctionCall:
@@ -106,16 +114,16 @@ module AstDecoder {
 
         stack.push(opcode);
 
-        console.log("special argument count " + signature.numArguments);
+        trace("special argument count " + signature.numArguments);
         for (var i = 0; i < signature.numArguments; i++)
-          result += decodeNode(reader, handler, stack);
+          decodeNode(reader, handler, stack);
 
         if (stack.pop() !== opcode)
           throw new Error("Decode stack misalignment");
 
         immediates.push(signatureIndex);
 
-        return result;
+        return signature.numArguments;
 
       case Wasm.OpcodeInfo.SpecialArgType.Block:
         // FIXME: LEB128?
@@ -124,14 +132,14 @@ module AstDecoder {
 
         stack.push(opcode);
 
-        console.log("block containing " + numChildren + " nodes");
+        trace("block containing " + numChildren + " nodes");
         for (var i = 0; i < numChildren; i++)
-          result += decodeNode(reader, handler, stack);
+          decodeNode(reader, handler, stack);
 
         if (stack.pop() !== opcode)
           throw new Error("Decode stack misalignment");
 
-        return result;
+        return numChildren;
     }
 
     throw new Error("Special type " + specialType + " (" + Wasm.OpcodeInfo.SpecialArgType[specialType] + ") not implemented");
@@ -150,7 +158,7 @@ module AstDecoder {
     for (var i = 0; i < decodeDepth; i++)
       indent += " ";
 
-    console.log(
+    trace(
       indent + "opcode@" + 
       (reader.startOffset + reader.position) + "/" + 
       (reader.startOffset + reader.length) + " = 0x" + 
@@ -215,7 +223,7 @@ module AstDecoder {
     var stack = [];
     var ok = false;
 
-    console.log("decode function body of length " + reader.length);
+    trace("decode function body of length " + reader.length);
 
     try {
       while (!reader.eof && !reader.hasOverread) {
@@ -225,7 +233,7 @@ module AstDecoder {
       ok = true;
     } finally {
       if (!ok)
-        console.log(
+        trace(
           "error at opcode #" + numOpcodesRead + 
           ", byte offset #" + (reader.startOffset + reader.position)
         );

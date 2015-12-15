@@ -232,6 +232,8 @@ module Wasm.OpcodeInfo {
   defineSignature(Wasm.ConstantOpcode.F32Const, [OpcodeArgType.Float, 4]);
   defineSignature(Wasm.ConstantOpcode.F64Const, [OpcodeArgType.Float, 8]);
 
+  defineSignature(Wasm.ControlOpcode.Br, [OpcodeArgType.Integer, 1]);
+
   defineSignature(
     Wasm.MiscOpcode.CallFunction, 
     SpecialArgType.FunctionCall
@@ -240,5 +242,20 @@ module Wasm.OpcodeInfo {
   defineSignature(
     Wasm.ControlOpcode.Block,
     SpecialArgType.Block
+  );
+
+  defineSignature(
+    Wasm.ControlOpcode.Loop,
+    SpecialArgType.Block
+  );
+
+  defineSignature(
+    Wasm.ControlOpcode.If, 
+    [OpcodeArgType.Node, 2]
+  );
+
+  defineSignature(
+    Wasm.ControlOpcode.IfThen, 
+    [OpcodeArgType.Node, 2]
   );
 }

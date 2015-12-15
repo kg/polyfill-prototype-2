@@ -358,3 +358,28 @@ test("decodes compare.txt", function (assert) {
 
   // FIXME: Assert against decoded contents
 });
+
+test("decodes break-loop-inner-expr.txt", function (assert) {
+  var fileBytes = readV8Dump("third_party/sexpr-wasm-prototype/test/dump/break-loop-inner-expr.txt");
+
+  var moduleHandler = new MockModuleHandler(assert);
+  var handler = moduleHandler.astHandler;
+  var stream = handler.stream;
+
+  var opcodes = Wasm.Opcodes;
+  var reader = makeReader(fileBytes);
+
+  assert.equal(ModuleDecoder.decodeModule(reader, moduleHandler), 3);
+  console.log(stream.toString());
+
+  stream[0].assertTree(
+    ["CallFunction",
+      [
+        // arg0
+        ["I8Const", [1]],
+        // signature index
+        [0]
+      ]
+    ]
+  );
+});
