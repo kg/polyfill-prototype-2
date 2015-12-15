@@ -373,13 +373,37 @@ test("decodes break-loop-inner-expr.txt", function (assert) {
   console.log(stream.toString());
 
   stream[0].assertTree(
-    ["CallFunction",
+    [
+      "Loop",
       [
-        // arg0
-        ["I8Const", [1]],
-        // signature index
-        [0]
-      ]
+        [
+          "If",
+          [
+            ["I8Const", [1]],
+            ["Br", [0]]
+          ]
+        ],
+        ["Nop"],
+        [
+          "If",
+          [
+            ["I8Const", [3]],
+            ["Br", [1]]
+          ]
+        ]
+      ],
+    ]
+  );
+
+  stream[1].assertTree(
+    [
+      "I8Const", [4]
+    ]
+  );
+
+  stream[2].assertTree(
+    [
+      "I8Const", [5]
     ]
   );
 });

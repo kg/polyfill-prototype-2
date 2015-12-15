@@ -307,7 +307,6 @@ class _Node {
       }
     }
 
-    if (node.args.length !== 0)
-      this._assert.ok(false, "expected '" + nodeName + "' to have no children");
+    this._assert.equal(node.args.length, 0, "expected '" + nodeName + "' to have no children");
   }
 };
