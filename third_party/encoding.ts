@@ -130,12 +130,16 @@ module Encoding {
     else
       endpoint = (bytes.length - position);
 
+    if (endpoint > bytes.length)
+      throw new Error("Invalid endpoint " + endpoint + " for array of length " + bytes.length);
+
     var peek = function peek (offset : int32) : number | boolean {
       offset |= 0;
       if (position + offset >= endpoint)
         return false;
 
-      return bytes[position + offset];
+      var result = bytes[position + offset];
+      return result;
     };
 
     var hasOverread = false;

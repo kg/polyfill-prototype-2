@@ -81,7 +81,7 @@ test("decodes function section", function (assert) {
     0x00, 0x00, // signature index
     0x00, 0x00, // body size
 
-    0x01, 
+    0x01, // flags
     0x02, 0x00, // signature index
     0x03, 0x00, 0x00, 0x00, // name offset
     0x04, 0x00, // body size
@@ -94,8 +94,8 @@ test("decodes function section", function (assert) {
 
   assert.equal(numSections, 2);
   assert.deepEqual(log, [
-    ["onFunction", [0, 0, undefined, 7, 0]],
-    ["onFunction", [1, 2, 3, 16, 4]],
+    ["onFunction", [0, 0, null, null, 7, 0]],
+    ["onFunction", [0, 2, 3, null, 16, 4]],
     ["onEndOfModule", []]
   ]);
 });
@@ -230,7 +230,7 @@ function opcode (name : string) : number {
 test("decodes convert.txt", function (assert) {
   var fileBytes = readV8Dump("third_party/sexpr-wasm-prototype/test/dump/convert.txt");
 
-  var moduleHandler = new MockModuleHandler(assert);
+  var moduleHandler = new MockModuleHandler(assert, fileBytes);
   var handler = moduleHandler.astHandler;
   var stream = handler.stream;
 
@@ -267,7 +267,7 @@ test("decodes convert.txt", function (assert) {
 test("decodes call.txt", function (assert) {
   var fileBytes = readV8Dump("third_party/sexpr-wasm-prototype/test/dump/call.txt");
 
-  var moduleHandler = new MockModuleHandler(assert);
+  var moduleHandler = new MockModuleHandler(assert, fileBytes);
   var handler = moduleHandler.astHandler;
   var stream = handler.stream;
 
@@ -282,7 +282,7 @@ test("decodes call.txt", function (assert) {
       [
         // arg0
         ["I8Const", [1]],
-        // signature index
+        // function index
         [0]
       ]
     ]
@@ -292,7 +292,7 @@ test("decodes call.txt", function (assert) {
 test("decodes block.txt", function (assert) {
   var fileBytes = readV8Dump("third_party/sexpr-wasm-prototype/test/dump/block.txt");
 
-  var moduleHandler = new MockModuleHandler(assert);
+  var moduleHandler = new MockModuleHandler(assert, fileBytes);
   var handler = moduleHandler.astHandler;
   var stream = handler.stream;
 
@@ -324,7 +324,7 @@ test("decodes block.txt", function (assert) {
 test("decodes compare.txt", function (assert) {
   var fileBytes = readV8Dump("third_party/sexpr-wasm-prototype/test/dump/compare.txt");
 
-  var moduleHandler = new MockModuleHandler(assert);
+  var moduleHandler = new MockModuleHandler(assert, fileBytes);
   var handler = moduleHandler.astHandler;
   var stream = handler.stream;
 
@@ -362,7 +362,7 @@ test("decodes compare.txt", function (assert) {
 test("decodes break-loop-inner-expr.txt", function (assert) {
   var fileBytes = readV8Dump("third_party/sexpr-wasm-prototype/test/dump/break-loop-inner-expr.txt");
 
-  var moduleHandler = new MockModuleHandler(assert);
+  var moduleHandler = new MockModuleHandler(assert, fileBytes);
   var handler = moduleHandler.astHandler;
   var stream = handler.stream;
 
@@ -404,6 +404,32 @@ test("decodes break-loop-inner-expr.txt", function (assert) {
   stream[2].assertTree(
     [
       "I8Const", [5]
+    ]
+  );
+});
+
+test("decodes callimport.txt", function (assert) {
+  var fileBytes = readV8Dump("third_party/sexpr-wasm-prototype/test/dump/callimport.txt");
+
+  var moduleHandler = new MockModuleHandler(assert, fileBytes);
+  var handler = moduleHandler.astHandler;
+  var stream = handler.stream;
+
+  var opcodes = Wasm.Opcodes;
+  var reader = makeReader(fileBytes);
+
+  assert.equal(ModuleDecoder.decodeModule(reader, moduleHandler), 3);
+  console.log(stream.toString());
+
+  stream[0].assertTree(
+    ["CallFunction",
+      [
+        // arg0
+        ["I8Const", [1]],
+        ["F32Const", [2]],
+        // function index
+        [0]
+      ]
     ]
   );
 });

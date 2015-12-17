@@ -24,13 +24,21 @@ module AstDecoder {
   export interface IDecodeHandler {
     // Called by the decoder to determine how many child nodes 
     //  a given function call has. Write the results into 'result'    
-    getFunctionSignatureByIndex (
+    getSignatureByIndex (
       index: uint32,
       result: {
         numArguments: uint32,
         returnType: Wasm.LocalType
       }
     );
+
+    getSignatureIndexByFunctionIndex (
+      index: uint32
+    ) : uint32;
+
+    getSignatureIndexByImportIndex (
+      index: uint32
+    ) : uint32;
 
     // Any node with child nodes produces this event before
     //  decoding child nodes.
@@ -103,14 +111,17 @@ module AstDecoder {
     switch (specialType) {
       case Wasm.OpcodeInfo.SpecialArgType.FunctionCall:
         // FIXME: LEB128?
-        // FIXME: eof handling
-        var signatureIndex = reader.readByte();
+        var functionIndex = reader.readByte();
+        if (functionIndex === false)
+          throw new Error("eof");
+
+        var signatureIndex = handler.getSignatureIndexByFunctionIndex(<uint32>functionIndex);
         // FIXME: reuse
         var signature = {
           numArguments: 0,
           returnType: 0
         };
-        handler.getFunctionSignatureByIndex(<uint32>signatureIndex, signature);
+        handler.getSignatureByIndex(<uint32>signatureIndex, signature);
 
         stack.push(opcode);
 

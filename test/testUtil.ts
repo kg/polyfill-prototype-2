@@ -140,16 +140,31 @@ function readV8Dump (relativeUrl: string) {
 }
 
 type MockSignature = [WasmTypeId, WasmTypeId[]];
+type MockImport = [byte, uint32, uint32];
+
+// the design calls for separate function and import
+//  tables but in v8-native they are the same table
+
+// isImport, tableIndex, signatureIndex
+type MockFunctionTableEntry = [boolean, uint32, uint32];
 
 class MockModuleHandler implements ModuleDecoder.IDecodeHandler {
   signatures: MockSignature[];
+  imports:    MockImport[];
+  functionTable: MockFunctionTableEntry[];
   astHandler: MockAstHandler;
-  _assert: any;
+  functionCount: uint32;
+  _bytes:     Uint8Array;
+  _assert:    any;
 
-  constructor (assert) {
+  constructor (assert, bytes) {
     this.astHandler = new MockAstHandler(assert);
     this.signatures = this.astHandler.signatures;
+    this.imports    = this.astHandler.imports;
+    this.functionTable = this.astHandler.functionTable;
+    this.functionCount = 0;
     this._assert = assert;
+    this._bytes = bytes;
   }
 
   onMemory (...args) {
@@ -159,13 +174,36 @@ class MockModuleHandler implements ModuleDecoder.IDecodeHandler {
     var sig : MockSignature = [
       resultType, argumentTypes.slice()
     ];
-    console.log("//  signature " + sig[0] + " [" + sig[1] + "]");
+    console.log("//  signature #" + this.signatures.length + ": " + sig[0] + " [" + sig[1] + "]");
     this.signatures.push(sig);
   }
 
-  onFunction (...args) {
-    console.log("//  function " + args);
+  onFunction (flags, signatureIndex, nameOffset, locals, bodyOffset, bodySize) {
+    var name = null;
+    if (nameOffset)
+      name = ModuleDecoder.decodeUtf8String(this._bytes, nameOffset);
+    console.log(
+      "//  function " + (name || "unnamed") + 
+      " locals " + (locals ? JSON.stringify(locals) : "none")
+    );
+
+    this.functionTable.push([false, this.functionCount, signatureIndex]);
+    this.functionCount += 1;
     return this.astHandler;
+  }
+
+  onImport (flags, signatureIndex, nameOffset) {
+    var imp : MockImport = [
+      flags, signatureIndex, nameOffset
+    ];
+
+    var name = null;
+    if (nameOffset)
+      name = ModuleDecoder.decodeUtf8String(this._bytes, nameOffset);
+
+    console.log("//  import #" + this.imports.length + " " + (name || "unnamed") + " sig#" + signatureIndex);
+    this.functionTable.push([true, this.imports.length, signatureIndex]);
+    this.imports.push(imp);
   }
 
   onEndOfModule () {
@@ -174,20 +212,32 @@ class MockModuleHandler implements ModuleDecoder.IDecodeHandler {
 
 class MockAstHandler implements AstDecoder.IDecodeHandler {
   signatures: MockSignature[];
+  imports: MockImport[];
+  functionTable: MockFunctionTableEntry[];
   stream: any[];
   _assert: any;
 
   constructor (assert) {
     this.stream = [];
     this.signatures = [];
+    this.imports = [];
+    this.functionTable = [];
     this._assert = assert;
   }
 
-  getFunctionSignatureByIndex (index, result) {
+  getSignatureByIndex (index, result) {
     var signature = this.signatures[index];
     result.numArguments = signature[1].length;
     result.returnType = signature[0];
   }
+
+  getSignatureIndexByFunctionIndex (index) {
+    return this.functionTable[index][2];
+  };
+
+  getSignatureIndexByImportIndex (index) {
+    return this.functionTable[index][2];
+  };
 
   onBeginOpcode (opcode, _) {
   }
