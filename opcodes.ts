@@ -232,7 +232,7 @@ module Wasm.OpcodeInfo {
   defineSignature(Wasm.ConstantOpcode.F32Const, [OpcodeArgType.Float, 4]);
   defineSignature(Wasm.ConstantOpcode.F64Const, [OpcodeArgType.Float, 8]);
 
-  defineSignature(Wasm.ControlOpcode.Br, [OpcodeArgType.Integer, 1]);
+  defineSignature(Wasm.ControlOpcode.Br, [OpcodeArgType.Integer, 1], [OpcodeArgType.Node, 1]);
 
   defineSignature(
     Wasm.MiscOpcode.CallFunction, 
